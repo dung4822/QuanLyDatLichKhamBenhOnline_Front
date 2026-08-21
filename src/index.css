@@ -1,0 +1,96 @@
+@import "tailwindcss";
+
+@theme {
+  --color-primary: #1D3557;
+  --color-primary-hover: #112237;
+  --color-accent-blue: #2563EB;
+  --color-accent-blue-hover: #1D4ED8;
+  --color-light-blue: #EBF3FE;
+  
+  --font-sans: 'Inter', system-ui, sans-serif;
+  --font-display: 'Inter', system-ui, sans-serif;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  background-color: #FFFFFF;
+  color: #334155;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Clean UI components */
+.shadow-flat {
+  box-shadow: 0 4px 20px -2px rgba(17, 34, 63, 0.04), 0 2px 4px -1px rgba(17, 34, 63, 0.02);
+}
+
+.shadow-flat-hover {
+  transition: all 0.25s ease;
+}
+.shadow-flat-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 24px -4px rgba(17, 34, 63, 0.08), 0 4px 12px -2px rgba(17, 34, 63, 0.04);
+}
+
+/* Custom image masking border-radius for doctor image in hero */
+.doctor-mask {
+  border-radius: 40% 60% 70% 30% / 40% 50% 60% 50%;
+}
+
+/* Premium Floating Animations for cards in Hero Section */
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-10px) rotate(1deg);
+  }
+}
+
+@keyframes float-slow {
+  0%, 100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-6px) rotate(-1deg);
+  }
+}
+
+@keyframes float-delay {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+.animate-float-card-1 {
+  animation: float 5s ease-in-out infinite;
+}
+
+.animate-float-card-2 {
+  animation: float-slow 6s ease-in-out infinite;
+  animation-delay: 1.5s;
+}
+
+.animate-float-card-3 {
+  animation: float-delay 5.5s ease-in-out infinite;
+  animation-delay: 0.7s;
+}
