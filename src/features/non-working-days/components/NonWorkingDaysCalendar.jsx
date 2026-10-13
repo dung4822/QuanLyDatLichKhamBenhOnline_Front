@@ -23,9 +23,9 @@ function NonWorkingDaysCalendar({ month, nonWorkingDays, onPreviousMonth, onNext
 
   return (
     <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-      <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4 sm:px-6">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-slate-100 px-5 py-4 sm:px-6">
         <div>
-          <h2 className="text-lg font-bold text-[#1D3557]">Lịch nghỉ theo tháng</h2>
+          <h2 className="text-lg font-bold text-(--ink)">Lịch nghỉ theo tháng</h2>
           <p className="mt-1 text-sm text-slate-500">Xem nhanh ngày bệnh viện hoặc bác sĩ không nhận khám.</p>
         </div>
         <div className="flex items-center gap-1">
@@ -37,7 +37,7 @@ function NonWorkingDaysCalendar({ month, nonWorkingDays, onPreviousMonth, onNext
           >
             <ChevronLeft className="h-5 w-5" />
           </button>
-          <p className="w-36 text-center text-sm font-bold capitalize text-[#1D3557]">{formatMonth(month)}</p>
+          <p aria-live="polite" className="w-36 text-center text-sm font-bold capitalize text-(--ink)">{formatMonth(month)}</p>
           <button
             type="button"
             onClick={onNextMonth}
@@ -49,6 +49,8 @@ function NonWorkingDaysCalendar({ month, nonWorkingDays, onPreviousMonth, onNext
         </div>
       </div>
 
+      <div className="overflow-x-auto" role="region" aria-label="Lịch ngày nghỉ, cuộn ngang để xem cả tuần" tabIndex={0}>
+      <div className="min-w-[700px]">
       <div className="grid grid-cols-7 border-b border-slate-100 bg-slate-50/70">
         {WEEKDAY_LABELS.map((label) => (
           <span key={label} className="px-2 py-2.5 text-center text-xs font-bold text-slate-500">{label}</span>
@@ -73,24 +75,24 @@ function NonWorkingDaysCalendar({ month, nonWorkingDays, onPreviousMonth, onNext
             >
               {isCurrentMonthDay && (
                 <>
-                  <span className={`flex h-6 w-6 items-center justify-center rounded-full text-xs font-semibold ${
-                    isToday ? 'bg-[#1D3557] text-white' : 'text-slate-600'
+                  <span aria-current={isToday ? 'date' : undefined} className={`flex h-6 w-6 items-center justify-center rounded-full text-xs font-semibold ${
+                    isToday ? 'bg-(--brand) text-white' : 'text-slate-600'
                   }`}>
                     {day}
                   </span>
                   <div className="mt-1 space-y-1">
                     {hasHospitalClosure && (
-                      <span title="Cả bệnh viện nghỉ" className="block truncate rounded bg-rose-100 px-1.5 py-0.5 text-[10px] font-bold text-rose-700">
-                        BV nghỉ
+                      <span title="Cả bệnh viện nghỉ" className="block truncate rounded bg-rose-100 px-1.5 py-0.5 text-xs font-bold text-rose-700">
+                        Bệnh viện nghỉ
                       </span>
                     )}
                     {doctorItems.slice(0, hasHospitalClosure ? 1 : 2).map((item) => (
-                      <span key={item.nonWorkingDayId} title={item.doctorFullName || 'Bác sĩ nghỉ'} className="block truncate rounded bg-violet-100 px-1.5 py-0.5 text-[10px] font-bold text-violet-700">
+                      <span key={item.nonWorkingDayId} title={item.doctorFullName || 'Bác sĩ nghỉ'} className="block truncate rounded bg-violet-100 px-1.5 py-0.5 text-xs font-bold text-violet-700">
                         {item.doctorFullName || `BS #${item.doctorId}`}
                       </span>
                     ))}
                     {doctorItems.length > (hasHospitalClosure ? 1 : 2) && (
-                      <span className="block px-1.5 text-[10px] font-semibold text-slate-500">+{doctorItems.length - (hasHospitalClosure ? 1 : 2)} bác sĩ</span>
+                      <span className="block px-1.5 text-xs font-semibold text-slate-500">+{doctorItems.length - (hasHospitalClosure ? 1 : 2)} bác sĩ</span>
                     )}
                   </div>
                 </>
@@ -100,6 +102,8 @@ function NonWorkingDaysCalendar({ month, nonWorkingDays, onPreviousMonth, onNext
         })}
       </div>
 
+      </div>
+      </div>
       <div className="flex flex-wrap gap-4 border-t border-slate-100 px-5 py-3 text-xs font-medium text-slate-500 sm:px-6">
         <span className="flex items-center gap-1.5"><i className="h-2.5 w-2.5 rounded-full bg-rose-400" />Cả bệnh viện nghỉ</span>
         <span className="flex items-center gap-1.5"><i className="h-2.5 w-2.5 rounded-full bg-violet-400" />Bác sĩ nghỉ</span>

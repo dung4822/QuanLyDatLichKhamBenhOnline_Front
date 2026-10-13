@@ -29,20 +29,21 @@ function LoadingRows() {
   ))
 }
 
-function SpecialtiesTable({ specialties, isLoading, actionId, onEdit, onDeactivate, onReactivate }) {
+function SpecialtiesTable({ specialties, isLoading, actionId, onEdit, onDeactivate, onReactivate, emptyMessage }) {
   return (
     <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-      <div className="overflow-x-auto">
+      <div className="overflow-x-auto" role="region" aria-label="Danh sách chuyên khoa, cuộn ngang để xem đầy đủ" tabIndex={0}>
         <table className="min-w-[960px] w-full border-collapse text-left">
+          <caption className="sr-only">Danh sách chuyên khoa</caption>
           <thead className="border-b border-slate-200 bg-slate-50/80">
             <tr className="text-xs font-bold uppercase tracking-wide text-slate-500">
-              <th className="px-5 py-4">ID</th>
-              <th className="px-5 py-4">Tên chuyên khoa</th>
-              <th className="px-5 py-4">Mô tả</th>
-              <th className="px-5 py-4">Trạng thái</th>
-              <th className="px-5 py-4">Ngày tạo</th>
-              <th className="px-5 py-4">Ngày cập nhật</th>
-              <th className="px-5 py-4 text-right">Thao tác</th>
+              <th scope="col" className="px-5 py-4">ID</th>
+              <th scope="col" className="px-5 py-4">Tên chuyên khoa</th>
+              <th scope="col" className="px-5 py-4">Mô tả</th>
+              <th scope="col" className="px-5 py-4">Trạng thái</th>
+              <th scope="col" className="px-5 py-4">Ngày tạo</th>
+              <th scope="col" className="px-5 py-4">Ngày cập nhật</th>
+              <th scope="col" className="px-5 py-4 text-right">Thao tác</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
@@ -51,7 +52,7 @@ function SpecialtiesTable({ specialties, isLoading, actionId, onEdit, onDeactiva
             {!isLoading && specialties.length === 0 && (
               <tr>
                 <td colSpan="7" className="px-5 py-14 text-center text-sm text-slate-500">
-                  Chưa có chuyên khoa nào. Hãy thêm chuyên khoa đầu tiên.
+                  {emptyMessage || 'Chưa có chuyên khoa nào. Hãy thêm chuyên khoa đầu tiên.'}
                 </td>
               </tr>
             )}
@@ -64,7 +65,7 @@ function SpecialtiesTable({ specialties, isLoading, actionId, onEdit, onDeactiva
                 return (
                   <tr key={specialty.specialtyId} className="text-sm text-slate-600 transition hover:bg-slate-50/70">
                     <td className="px-5 py-4 font-medium text-slate-500">#{specialty.specialtyId}</td>
-                    <td className="px-5 py-4 font-semibold text-[#1D3557]">{specialty.name}</td>
+                    <td className="px-5 py-4 font-semibold text-(--ink)">{specialty.name}</td>
                     <td className="max-w-xs px-5 py-4 leading-5 text-slate-500">
                       {specialty.description || <span className="text-slate-400">Chưa có mô tả</span>}
                     </td>

@@ -1,5 +1,7 @@
+import Notice from '../../../components/ui/Notice'
+import { getErrorMessage, getFieldErrors } from '../../../lib/apiClient'
 import { useCallback, useEffect, useState } from 'react'
-import { AlertCircle, CalendarDays, CheckCircle2, ClipboardList, Plus, RefreshCw, Settings2, Stethoscope } from 'lucide-react'
+import { AlertCircle, ClipboardList, Plus, RefreshCw, Settings2 } from 'lucide-react'
 import { getDoctors } from '../../doctors/api/doctorsApi'
 import ShiftForm from '../components/ShiftForm'
 import ShiftsTable from '../components/ShiftsTable'
@@ -14,56 +16,20 @@ import {
   updateShift,
 } from '../api/shiftsApi'
 
-function getErrorMessage(error) {
-  if (error?.status === 400) {
-    return 'Dữ liệu ca làm việc chưa hợp lệ. Vui lòng kiểm tra lại.'
-  }
-
-  if (error?.status === 404) {
-    return 'Ca làm việc hoặc bác sĩ không tồn tại hoặc đã bị thay đổi.'
-  }
-
-  return 'Không thể kết nối hoặc xử lý yêu cầu. Vui lòng thử lại.'
+const ERROR_MESSAGES = {
+  400: 'Dữ liệu ca làm việc chưa hợp lệ. Vui lòng kiểm tra các trường được đánh dấu.',
+  404: 'Ca làm việc hoặc bác sĩ không tồn tại hoặc đã bị thay đổi.',
 }
 
 function getScheduleErrorMessage(error) {
-  const shiftIdsErrors = error?.data?.errors?.ShiftIds || error?.data?.errors?.shiftIds
-  if (Array.isArray(shiftIdsErrors) && shiftIdsErrors[0]) {
-    return shiftIdsErrors[0]
-  }
-
-  if (error?.status === 404) {
-    return 'Bác sĩ không tồn tại hoặc đã bị xóa.'
-  }
-
-  if (error?.status === 400) {
-    return 'Lịch tuần chứa dữ liệu không hợp lệ. Vui lòng kiểm tra lại các ca đã chọn.'
-  }
-
-  return 'Không thể lưu lịch tuần. Các checkbox vẫn được giữ nguyên để bạn thử lại.'
-}
-
-function Notice({ notice }) {
-  if (!notice) {
-    return null
-  }
-
-  const isSuccess = notice.type === 'success'
-  const Icon = isSuccess ? CheckCircle2 : AlertCircle
-
-  return (
-    <div
-      role={isSuccess ? 'status' : 'alert'}
-      className={`flex items-start gap-3 rounded-xl border px-4 py-3 text-sm font-medium ${
-        isSuccess
-          ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
-          : 'border-rose-200 bg-rose-50 text-rose-700'
-      }`}
-    >
-      <Icon className="mt-0.5 h-5 w-5 shrink-0" />
-      <p>{notice.message}</p>
-    </div>
-  )
+  // Lỗi của danh sách ca (ShiftIds) là câu cụ thể nhất, nên ưu tiên hiển thị.
+  const shiftIdsError = getFieldErrors(error, ['shiftIds']).fields.shiftIds
+  if (shiftIdsError) return shiftIdsError
+  return getErrorMessage(error, {
+    400: 'Lịch tuần chứa dữ liệu không hợp lệ. Vui lòng kiểm tra lại các ca đã chọn.',
+    404: 'Bác sĩ không tồn tại hoặc đã bị xóa.',
+    500: 'Không thể lưu lịch tuần. Các checkbox vẫn được giữ nguyên để bạn thử lại.',
+  })
 }
 
 function ShiftSchedulesPage() {
@@ -83,6 +49,7 @@ function ShiftSchedulesPage() {
   const [isLoadingSchedule, setIsLoadingSchedule] = useState(false)
   const [isSavingSchedule, setIsSavingSchedule] = useState(false)
   const [scheduleError, setScheduleError] = useState('')
+  const [isScheduleReady, setIsScheduleReady] = useState(false)
 
   const loadBaseData = useCallback(async () => {
     setIsLoading(true)
@@ -94,7 +61,7 @@ function ShiftSchedulesPage() {
     if (shiftsResult.status === 'fulfilled') {
       setShifts(Array.isArray(shiftsResult.value) ? shiftsResult.value : [])
     } else {
-      setShiftsError(getErrorMessage(shiftsResult.reason))
+      setShiftsError(getErrorMessage(shiftsResult.reason, ERROR_MESSAGES))
     }
 
     if (doctorsResult.status === 'fulfilled') {
@@ -163,7 +130,7 @@ function ShiftSchedulesPage() {
       setIsShiftFormOpen(false)
       setSelectedShift(null)
     } catch (error) {
-      setNotice({ type: 'error', message: getErrorMessage(error) })
+      setNotice({ type: 'error', message: getErrorMessage(error, ERROR_MESSAGES) })
       throw error
     } finally {
       setIsSavingShift(false)
@@ -191,7 +158,7 @@ function ShiftSchedulesPage() {
       })
       setNotice({ type: 'success', message: 'Đã xóa ca làm việc.' })
     } catch (error) {
-      setNotice({ type: 'error', message: getErrorMessage(error) })
+      setNotice({ type: 'error', message: getErrorMessage(error, ERROR_MESSAGES) })
     } finally {
       setShiftActionId(null)
     }
@@ -199,6 +166,8 @@ function ShiftSchedulesPage() {
 
   async function loadDoctorSchedule(rawDoctorId) {
     const doctorId = Number(rawDoctorId)
+    setIsScheduleReady(false)
+    setNotice(null)
     setSelectedDoctorId(doctorId || null)
     setSelectedShiftIds(new Set())
     setScheduleError('')
@@ -214,12 +183,14 @@ function ShiftSchedulesPage() {
       const [latestShifts, doctorShifts] = await Promise.all([getShifts(), getDoctorShifts(doctorId)])
       const normalizedShifts = Array.isArray(latestShifts) ? latestShifts : []
       setShifts(normalizedShifts)
+      setShiftsError('')
       const activeShiftIds = new Set(normalizedShifts.filter((shift) => shift.isActive).map((shift) => shift.shiftId))
 
       // Lịch cũ có thể chứa ca vừa inactive. Không giữ các ID đó để tránh PUT bị 400.
       setSelectedShiftIds(new Set(doctorShifts.map((item) => item.shiftId).filter((shiftId) => activeShiftIds.has(shiftId))))
-    } catch (error) {
-      setScheduleError(getScheduleErrorMessage(error))
+      setIsScheduleReady(true)
+    } catch {
+      setScheduleError('Không tải được lịch tuần. Chưa thể chỉnh sửa để tránh ghi đè lịch hiện có.')
     } finally {
       setIsLoadingSchedule(false)
     }
@@ -249,7 +220,8 @@ function ShiftSchedulesPage() {
   }
 
   async function saveDoctorSchedule() {
-    if (!selectedDoctorId) {
+    // Chỉ cho lưu khi đã đọc thành công lịch hiện tại của đúng bác sĩ.
+    if (!selectedDoctorId || !isScheduleReady || isLoadingSchedule || isSavingSchedule) {
       return
     }
 
@@ -272,30 +244,12 @@ function ShiftSchedulesPage() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-50 text-slate-700">
-      <header className="border-b border-slate-200 bg-white">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#1D3557] text-white shadow-sm">
-              <Stethoscope className="h-5 w-5" />
-            </div>
-            <div>
-              <p className="text-base font-bold text-[#1D3557]">MediCare+</p>
-              <p className="text-xs font-medium text-slate-500">Khu vực quản trị</p>
-            </div>
-          </div>
-          <span className="rounded-full bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-700">Lịch làm việc</span>
-        </div>
-      </header>
+    <section className="admin-page">
 
-      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+      <div>
         <div className="mb-7 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-blue-700">
-              <CalendarDays className="h-4 w-4" />
-              Cấu hình lịch tuần
-            </div>
-            <h1 className="text-2xl font-bold tracking-tight text-[#1D3557] sm:text-3xl">Ca làm việc & lịch bác sĩ</h1>
+            <h1 className="text-2xl font-bold tracking-tight text-(--ink) sm:text-3xl">Ca làm việc & lịch bác sĩ</h1>
             <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
               Thiết lập các ca dùng chung, sau đó phân công lịch lặp lại hằng tuần cho từng bác sĩ.
             </p>
@@ -305,7 +259,7 @@ function ShiftSchedulesPage() {
               type="button"
               onClick={openCreateShiftForm}
               disabled={isSavingShift || shiftActionId !== null}
-              className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#1D3557] px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-[#112237] disabled:cursor-not-allowed disabled:opacity-60"
+              className="inline-flex items-center justify-center gap-2 rounded-lg bg-(--brand) px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-(--brand-strong) disabled:cursor-not-allowed disabled:opacity-60"
             >
               <Plus className="h-4 w-4" />
               Thêm ca làm việc
@@ -313,12 +267,14 @@ function ShiftSchedulesPage() {
           )}
         </div>
 
-        <div className="mb-5 inline-flex rounded-xl border border-slate-200 bg-white p-1 shadow-sm">
+        <div role="group" aria-label="Chế độ xem lịch" className="mb-5 flex w-fit max-w-full rounded-xl border border-slate-200 bg-white p-1 shadow-sm">
           <button
             type="button"
             onClick={() => setActiveTab('schedule')}
+            aria-pressed={activeTab === 'schedule'}
+            disabled={isLoadingSchedule || isSavingSchedule || isSavingShift || shiftActionId !== null}
             className={`inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition ${
-              activeTab === 'schedule' ? 'bg-[#1D3557] text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100'
+              activeTab === 'schedule' ? 'bg-(--brand) text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100'
             }`}
           >
             <ClipboardList className="h-4 w-4" />
@@ -327,8 +283,10 @@ function ShiftSchedulesPage() {
           <button
             type="button"
             onClick={() => setActiveTab('shifts')}
+            aria-pressed={activeTab === 'shifts'}
+            disabled={isLoadingSchedule || isSavingSchedule || isSavingShift || shiftActionId !== null}
             className={`inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition ${
-              activeTab === 'shifts' ? 'bg-[#1D3557] text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100'
+              activeTab === 'shifts' ? 'bg-(--brand) text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100'
             }`}
           >
             <Settings2 className="h-4 w-4" />
@@ -337,14 +295,14 @@ function ShiftSchedulesPage() {
         </div>
 
         <div className="space-y-5">
-          <Notice notice={notice} />
+          <Notice notice={isShiftFormOpen ? null : notice} />
 
           {activeTab === 'shifts' && (
             <>
               {shiftsError ? (
                 <section className="rounded-2xl border border-rose-200 bg-white p-6 text-center shadow-sm">
                   <AlertCircle className="mx-auto h-8 w-8 text-rose-500" />
-                  <h2 className="mt-3 font-bold text-[#1D3557]">Không tải được danh sách ca</h2>
+                  <h2 className="mt-3 font-bold text-(--ink)">Không tải được danh sách ca</h2>
                   <p className="mt-1 text-sm text-slate-500">{shiftsError}</p>
                   <button
                     type="button"
@@ -359,7 +317,7 @@ function ShiftSchedulesPage() {
                 <div className="space-y-6">
                   <WeeklyShiftCalendar shifts={shifts} isLoading={isLoading} />
                   <div>
-                    <h2 className="text-lg font-bold text-[#1D3557]">Danh sách chi tiết</h2>
+                    <h2 className="text-lg font-bold text-(--ink)">Danh sách chi tiết</h2>
                     <p className="mt-1 text-sm text-slate-500">Dùng bảng này khi cần sửa, tắt hoặc xóa một ca cụ thể.</p>
                   </div>
                   <ShiftsTable
@@ -381,6 +339,8 @@ function ShiftSchedulesPage() {
               selectedDoctorId={selectedDoctorId}
               selectedShiftIds={selectedShiftIds}
               isLoadingSchedule={isLoadingSchedule}
+              isScheduleReady={isScheduleReady}
+              onRetry={() => loadDoctorSchedule(selectedDoctorId)}
               isSaving={isSavingSchedule}
               scheduleError={scheduleError || shiftsError}
               doctorsError={doctorsError}
@@ -400,11 +360,12 @@ function ShiftSchedulesPage() {
             shifts={shifts}
             isSaving={isSavingShift}
             onSave={saveShift}
+            errorMessage={notice?.type === 'error' ? notice.message : ''}
             onCancel={closeShiftForm}
           />
         )}
       </div>
-    </main>
+    </section>
   )
 }
 

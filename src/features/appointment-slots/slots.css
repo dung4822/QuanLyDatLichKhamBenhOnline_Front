@@ -1,0 +1,55 @@
+.slots-page { color: var(--text); font-size: 15px; }
+.slots-header { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 0 0 28px; margin-bottom: 32px; border-bottom: 1px solid var(--line); }
+.slots-page .slots-header h1 { color: var(--ink); font-size: clamp(24px, 2.4vw, 28px); font-weight: 700; letter-spacing: -.5px; }
+.slots-header p { margin-top: 8px; color: var(--muted); line-height: 1.6; }
+.slots-timezone { font-size: 13px; color: var(--muted); white-space: nowrap; }
+.slots-clock { display: flex; flex-direction: column; align-items: flex-end; gap: 5px; flex-shrink: 0; }
+.slots-clock-time { color: var(--ink); font-size: 28px; line-height: 1.3; font-weight: 500; font-variant-numeric: tabular-nums; letter-spacing: 1px; }
+.slots-clock-date { color: var(--muted); font-size: 13px; }
+@media (max-width: 950px) { .slots-clock { align-items: flex-start; } }
+.slots-layout { display: grid; grid-template-columns: 265px minmax(0, 1fr); gap: 40px; }
+.slots-sidebar { border-right: 1px solid var(--line); padding-right: 28px; }
+.slots-sidebar label, .slots-page h2 { font-size: 15px; font-weight: 600; color: var(--ink); }
+.slots-sidebar select { display: block; width: 100%; margin-top: 12px; border: 1px solid var(--line-strong); border-radius: var(--radius-sm); background: white; padding: 10px; font-size: 14px; color: var(--ink); }
+.slots-sidebar select:disabled { opacity: .6; }
+.slots-selection { border-top: 1px solid var(--line); margin-top: 32px; padding-top: 24px; }
+.slots-hint { margin-top: 14px; color: var(--muted); font-size: 14px; line-height: 1.8; }
+.slots-disclaimer { margin-top: 24px; padding-top: 18px; border-top: 1px solid var(--line); font-size: 13px; line-height: 1.8; color: var(--muted); }
+.slots-chosen-time { margin-top: 20px; font-size: 26px; font-weight: 500; color: var(--ink); font-variant-numeric: tabular-nums; letter-spacing: -.8px; }
+.slots-chosen-time span { margin: 0 8px; color: var(--subtle); }
+.slots-chosen-date { margin-top: 8px; font-size: 14px; }
+.slots-chosen-doctor { margin: 12px 0; font-size: 15px; color: var(--ink); overflow-wrap: anywhere; }
+.slots-text-button { text-decoration: underline; text-underline-offset: 4px; font-size: 14px; color: var(--text); }
+.slots-calendar-heading, .slots-results-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.slots-calendar-heading > span { font-size: 13px; color: var(--muted); }
+.slots-days { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 8px; margin: 16px 0 32px; }
+.slots-days button { display: flex; flex-direction: column; align-items: center; gap: 7px; border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 14px 4px; background: white; color: var(--muted); }
+.slots-days button span { font-size: 13px; }
+.slots-days button strong { font-size: 23px; font-weight: 500; color: var(--ink); font-variant-numeric: tabular-nums; }
+.slots-days button:hover { border-color: var(--brand); }
+.slots-days button[aria-pressed="true"] { background: var(--brand); border-color: var(--brand); color: var(--subtle); }
+.slots-days button[aria-pressed="true"] strong { color: white; }
+.slots-results-heading { border-top: 1px solid var(--line); padding-top: 24px; margin-bottom: 22px; }
+.slots-results-heading p { font-size: 14px; color: var(--muted); margin-top: 6px; }
+.slots-refresh { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 40px; border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 8px 13px; background: white; color: var(--text); font-size: 14px; }
+.slots-refresh:hover:not(:disabled) { background: var(--hover); }
+.slots-refresh:disabled { opacity: .45; }
+.slots-empty { padding: 50px 24px; border: 1px dashed var(--line); border-radius: var(--radius-sm); text-align: center; }
+.slots-empty > svg { margin: 0 auto 16px; color: var(--muted); }
+.slots-empty h3 { font-size: 16px; font-weight: 500; color: var(--ink); }
+.slots-empty p { margin: 10px auto 0; max-width: 400px; font-size: 14px; line-height: 1.8; color: var(--muted); }
+.slots-empty button { margin-top: 20px; }
+.slots-period { margin-bottom: 26px; }
+.slots-period h3 { display: flex; align-items: center; gap: 12px; font-size: 14px; font-weight: 500; color: var(--muted); margin-bottom: 12px; }
+.slots-period h3 span { font-size: 13px; font-weight: 400; color: var(--muted); }
+.slots-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+.slots-grid button { display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 50px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: white; color: var(--text); font-size: 15px; font-variant-numeric: tabular-nums; }
+.slots-grid button:hover { border-color: var(--brand); background: var(--canvas); }
+.slots-grid button[aria-pressed="true"] { background: var(--hover); border-color: var(--brand); color: var(--ink); box-shadow: inset 0 0 0 1px #516979; }
+.slots-inline-error { color: #9b4141; font-size: 14px; line-height: 1.7; margin: 12px 0; }
+.slots-loading p { font-size: 14px; color: var(--muted); margin-bottom: 14px; }
+.slots-skeleton { height: 50px; border-radius: var(--radius-sm); background: var(--hover); animation: slots-pulse 1.5s infinite alternate; }
+@keyframes slots-pulse { to { opacity: .45; } }
+@media (max-width: 1150px) { .slots-layout { grid-template-columns: 220px minmax(0, 1fr); gap: 24px; } .slots-sidebar { padding-right: 20px; } .slots-days { gap: 5px; } }
+@media (max-width: 950px) { .slots-layout { grid-template-columns: minmax(0, 1fr); } .slots-sidebar { border-right: 0; padding-right: 0; } .slots-selection { margin-top: 20px; padding-top: 18px; } .slots-header { align-items: flex-start; flex-direction: column; gap: 12px; } }
+@media (max-width: 480px) { .slots-days { grid-template-columns: repeat(7, 68px); overflow-x: auto; padding-bottom: 8px; } .slots-days button { padding: 12px 4px; } .slots-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .slots-page .slots-header h1 { font-size: 28px; } }

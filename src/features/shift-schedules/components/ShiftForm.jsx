@@ -1,5 +1,7 @@
+import Modal from '../../../components/ui/Modal'
+import { getFieldErrors } from '../../../lib/apiClient'
 import { useState } from 'react'
-import { AlertCircle, Save, X } from 'lucide-react'
+import { AlertCircle, Save } from 'lucide-react'
 import { DAY_LABELS, WEEK_DAYS, toApiTime, toInputTime } from '../constants'
 
 const EMPTY_FORM = {
@@ -47,36 +49,15 @@ function validate(values) {
   return errors
 }
 
-function getServerValidationErrors(error) {
-  const apiErrors = error?.data?.errors
-  if (!apiErrors || typeof apiErrors !== 'object') {
-    return {}
-  }
+const SERVER_FIELDS = ['dayOfWeek', 'name', 'startTime', 'endTime', 'isActive']
 
-  const fieldMap = {
-    dayofweek: 'dayOfWeek',
-    name: 'name',
-    starttime: 'startTime',
-    endtime: 'endTime',
-    isactive: 'isActive',
-  }
-
-  return Object.entries(apiErrors).reduce((result, [key, messages]) => {
-    const formKey = fieldMap[key.toLowerCase()]
-    if (formKey) {
-      result[formKey] = Array.isArray(messages) ? messages[0] : messages
-    }
-    return result
-  }, {})
-}
-
-function FieldError({ children }) {
+function FieldError({ children, id }) {
   if (!children) {
     return null
   }
 
   return (
-    <p className="mt-1.5 flex items-center gap-1 text-xs font-medium text-rose-600">
+    <p id={id} role="alert" className="mt-1.5 flex items-center gap-1 text-xs font-medium text-rose-600">
       <AlertCircle className="h-3.5 w-3.5" />
       {children}
     </p>
@@ -98,7 +79,7 @@ function findOverlap(values, shifts, editingShiftId) {
   )
 }
 
-function ShiftForm({ shift, shifts, isSaving, onSave, onCancel }) {
+function ShiftForm({ shift, shifts, isSaving, onSave, onCancel, errorMessage }) {
   const [values, setValues] = useState(() => toFormValues(shift))
   const [errors, setErrors] = useState({})
   const isEditing = Boolean(shift)
@@ -133,16 +114,10 @@ function ShiftForm({ shift, shifts, isSaving, onSave, onCancel }) {
     try {
       await onSave(payload)
     } catch (error) {
-      const serverErrors = getServerValidationErrors(error)
+      const serverErrors = getFieldErrors(error, SERVER_FIELDS).fields
       if (Object.keys(serverErrors).length > 0) {
         setErrors(serverErrors)
       }
-    }
-  }
-
-  function handleBackdropClick(event) {
-    if (event.target === event.currentTarget) {
-      onCancel()
     }
   }
 
@@ -154,149 +129,138 @@ function ShiftForm({ shift, shifts, isSaving, onSave, onCancel }) {
     }`
 
   return (
-    <div
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/40 p-4 backdrop-blur-[2px]"
-      onMouseDown={handleBackdropClick}
+    <Modal
+      title={isEditing ? 'Cập nhật ca làm việc' : 'Thêm ca làm việc'}
+      description="Ca làm việc này sẽ lặp lại vào cùng một ngày mỗi tuần."
+      isBusy={isSaving}
+      onClose={onCancel}
+      errorMessage={errorMessage}
     >
-      <section
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="shift-form-title"
-        className="w-full max-w-xl rounded-2xl border border-slate-200 bg-white p-5 shadow-2xl sm:p-6"
-      >
-        <div className="mb-6 flex items-start justify-between gap-4">
+      {overlapShift && (
+        <div className="mb-5 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5 text-sm leading-5 text-amber-800">
+          Khung giờ này đang chồng với ca “{overlapShift.name}”. Hãy kiểm tra lại giờ bắt đầu và kết thúc trước khi lưu.
+        </div>
+      )}
+
+      <form onSubmit={handleSubmit} noValidate className="space-y-5">
+        <div className="grid gap-5 sm:grid-cols-2">
           <div>
-            <h2 id="shift-form-title" className="text-lg font-bold text-[#1D3557]">
-              {isEditing ? 'Cập nhật ca làm việc' : 'Thêm ca làm việc'}
-            </h2>
-            <p className="mt-1 text-sm text-slate-500">Một ca là khuôn mẫu lặp lại hằng tuần, không phải lịch theo ngày cụ thể.</p>
+            <label htmlFor="shift-day" className="mb-1.5 block text-sm font-semibold text-slate-700">
+              Ngày trong tuần <span className="text-rose-600">*</span>
+            </label>
+            <select
+              id="shift-day"
+              name="dayOfWeek"
+              aria-invalid={Boolean(errors.dayOfWeek)}
+              aria-describedby={errors.dayOfWeek ? 'dayOfWeek-error' : undefined}
+              value={values.dayOfWeek}
+              onChange={updateField}
+              disabled={isSaving}
+              className={`${inputClassName('dayOfWeek')} bg-white`}
+            >
+              {WEEK_DAYS.map((day) => (
+                <option key={day} value={day}>
+                  {DAY_LABELS[day]}
+                </option>
+              ))}
+            </select>
+            <FieldError id="dayOfWeek-error">{errors.dayOfWeek}</FieldError>
           </div>
+
+          <div>
+            <label htmlFor="shift-name" className="mb-1.5 block text-sm font-semibold text-slate-700">
+              Tên ca <span className="text-rose-600">*</span>
+            </label>
+            <input
+              id="shift-name"
+              name="name"
+              aria-invalid={Boolean(errors.name)}
+              aria-describedby={errors.name ? 'name-error' : undefined}
+              value={values.name}
+              onChange={updateField}
+              maxLength={100}
+              disabled={isSaving}
+              placeholder="Ví dụ: Ca sáng"
+              className={inputClassName('name')}
+            />
+            <FieldError id="name-error">{errors.name}</FieldError>
+          </div>
+
+          <div>
+            <label htmlFor="shift-start" className="mb-1.5 block text-sm font-semibold text-slate-700">
+              Giờ bắt đầu <span className="text-rose-600">*</span>
+            </label>
+            <input
+              id="shift-start"
+              name="startTime"
+              aria-invalid={Boolean(errors.startTime)}
+              aria-describedby={errors.startTime ? 'startTime-error' : undefined}
+              type="time"
+              value={values.startTime}
+              onChange={updateField}
+              disabled={isSaving}
+              className={inputClassName('startTime')}
+            />
+            <FieldError id="startTime-error">{errors.startTime}</FieldError>
+          </div>
+
+          <div>
+            <label htmlFor="shift-end" className="mb-1.5 block text-sm font-semibold text-slate-700">
+              Giờ kết thúc <span className="text-rose-600">*</span>
+            </label>
+            <input
+              id="shift-end"
+              name="endTime"
+              aria-invalid={Boolean(errors.endTime)}
+              aria-describedby={errors.endTime ? 'endTime-error' : undefined}
+              type="time"
+              value={values.endTime}
+              onChange={updateField}
+              disabled={isSaving}
+              className={inputClassName('endTime')}
+            />
+            <FieldError id="endTime-error">{errors.endTime}</FieldError>
+          </div>
+        </div>
+
+        <label className="flex cursor-pointer items-center justify-between gap-4 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+          <span>
+            <span className="block text-sm font-semibold text-slate-700">Đang hoạt động</span>
+            <span className="mt-0.5 block text-xs text-slate-500">Ca ngừng hoạt động vẫn hiển thị nhưng không thể được phân công mới.</span>
+          </span>
+          <input
+            name="isActive"
+            aria-invalid={Boolean(errors.isActive)}
+            aria-describedby={errors.isActive ? 'isActive-error' : undefined}
+            type="checkbox"
+            checked={values.isActive}
+            onChange={updateField}
+            disabled={isSaving}
+            className="h-4 w-4 rounded border-slate-300 text-blue-700 focus:ring-blue-500"
+          />
+        </label>
+        <FieldError id="isActive-error">{errors.isActive}</FieldError>
+
+        <div className="flex flex-col-reverse gap-3 border-t border-slate-100 pt-5 sm:flex-row sm:justify-end">
           <button
             type="button"
             onClick={onCancel}
             disabled={isSaving}
-            aria-label="Đóng biểu mẫu"
-            className="rounded-lg p-2 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 disabled:cursor-not-allowed"
+            className="rounded-lg border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            <X className="h-5 w-5" />
+            Hủy
+          </button>
+          <button
+            type="submit"
+            disabled={isSaving}
+            className="inline-flex items-center justify-center gap-2 rounded-lg bg-(--brand) px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-(--brand-strong) disabled:cursor-wait disabled:opacity-70"
+          >
+            <Save className="h-4 w-4" />
+            {isSaving ? 'Đang lưu...' : isEditing ? 'Lưu thay đổi' : 'Thêm ca'}
           </button>
         </div>
-
-        {overlapShift && (
-          <div className="mb-5 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5 text-sm leading-5 text-amber-800">
-            Khung giờ này đang chồng với ca “{overlapShift.name}”. Backend chưa tự chặn overlap, hãy kiểm tra trước khi lưu.
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit} noValidate className="space-y-5">
-          <div className="grid gap-5 sm:grid-cols-2">
-            <div>
-              <label htmlFor="shift-day" className="mb-1.5 block text-sm font-semibold text-slate-700">
-                Ngày trong tuần <span className="text-rose-600">*</span>
-              </label>
-              <select
-                id="shift-day"
-                name="dayOfWeek"
-                value={values.dayOfWeek}
-                onChange={updateField}
-                disabled={isSaving}
-                className={`${inputClassName('dayOfWeek')} bg-white`}
-              >
-                {WEEK_DAYS.map((day) => (
-                  <option key={day} value={day}>
-                    {DAY_LABELS[day]}
-                  </option>
-                ))}
-              </select>
-              <FieldError>{errors.dayOfWeek}</FieldError>
-            </div>
-
-            <div>
-              <label htmlFor="shift-name" className="mb-1.5 block text-sm font-semibold text-slate-700">
-                Tên ca <span className="text-rose-600">*</span>
-              </label>
-              <input
-                id="shift-name"
-                name="name"
-                value={values.name}
-                onChange={updateField}
-                maxLength={100}
-                disabled={isSaving}
-                placeholder="Ví dụ: Ca sáng"
-                className={inputClassName('name')}
-              />
-              <FieldError>{errors.name}</FieldError>
-            </div>
-
-            <div>
-              <label htmlFor="shift-start" className="mb-1.5 block text-sm font-semibold text-slate-700">
-                Giờ bắt đầu <span className="text-rose-600">*</span>
-              </label>
-              <input
-                id="shift-start"
-                name="startTime"
-                type="time"
-                value={values.startTime}
-                onChange={updateField}
-                disabled={isSaving}
-                className={inputClassName('startTime')}
-              />
-              <FieldError>{errors.startTime}</FieldError>
-            </div>
-
-            <div>
-              <label htmlFor="shift-end" className="mb-1.5 block text-sm font-semibold text-slate-700">
-                Giờ kết thúc <span className="text-rose-600">*</span>
-              </label>
-              <input
-                id="shift-end"
-                name="endTime"
-                type="time"
-                value={values.endTime}
-                onChange={updateField}
-                disabled={isSaving}
-                className={inputClassName('endTime')}
-              />
-              <FieldError>{errors.endTime}</FieldError>
-            </div>
-          </div>
-
-          <label className="flex cursor-pointer items-center justify-between gap-4 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
-            <span>
-              <span className="block text-sm font-semibold text-slate-700">Đang hoạt động</span>
-              <span className="mt-0.5 block text-xs text-slate-500">Ca inactive vẫn hiển thị nhưng không thể được phân công mới.</span>
-            </span>
-            <input
-              name="isActive"
-              type="checkbox"
-              checked={values.isActive}
-              onChange={updateField}
-              disabled={isSaving}
-              className="h-4 w-4 rounded border-slate-300 text-blue-700 focus:ring-blue-500"
-            />
-          </label>
-
-          <div className="flex flex-col-reverse gap-3 border-t border-slate-100 pt-5 sm:flex-row sm:justify-end">
-            <button
-              type="button"
-              onClick={onCancel}
-              disabled={isSaving}
-              className="rounded-lg border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              Hủy
-            </button>
-            <button
-              type="submit"
-              disabled={isSaving}
-              className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#1D3557] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#112237] disabled:cursor-wait disabled:opacity-70"
-            >
-              <Save className="h-4 w-4" />
-              {isSaving ? 'Đang lưu...' : isEditing ? 'Lưu thay đổi' : 'Thêm ca'}
-            </button>
-          </div>
-        </form>
-      </section>
-    </div>
+      </form>
+    </Modal>
   )
 }
 

@@ -1,42 +1,74 @@
-import logo from '../../../assets/logo1.png' 
+import { useState } from 'react'
+import { CalendarPlus, Menu, X } from 'lucide-react'
+import Brand from '../Brand'
+import { initials, useAuth } from '../../../features/auth/useAuth'
+import { canBook, isStaff, roleLabels } from '../../../features/auth/permissions'
+import { useLocationPath } from '../../../lib/navigation'
 
-const Header = () => {
+// Một header cho mọi trang công khai và trang cá nhân: liên kết thay đổi theo vai trò,
+// nên người dùng luôn thấy đúng "việc tiếp theo" của mình ở cùng một chỗ.
+function linksFor(role) {
+  const links = [
+    { label: 'Tìm bác sĩ', href: '/doctors' },
+    { label: 'Giờ khám trống', href: '/availability' },
+  ]
+  if (role === 'Patient') links.push({ label: 'Lịch hẹn của tôi', href: '/me/appointments' })
+  if (role === 'Doctor') links.push({ label: 'Lịch khám được giao', href: '/me/appointments' })
+  if (isStaff(role)) links.push({ label: 'Quản lý phòng khám', href: '/admin/appointments' })
+  return links
+}
+
+export default function Header() {
+  const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const { isAuthenticated, role, name } = useAuth()
+  const path = useLocationPath().split('?')[0]
+  const links = linksFor(role)
+  const current = (href) => (path === href || (href === '/doctors' && path === '/specialties') ? 'page' : undefined)
+  const closeMenu = () => setIsMenuOpen(false)
+
   return (
-    <header className="w-full bg-white shadow-sm border-b border-gray-100 sticky top-0 z-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
-        {/* Khối 1: Logo + Tên Bệnh viện */}
-        <div className="flex items-center gap-3 hover:cursor-pointer">
-          <img src={logo} alt="MediCare+ Logo" className="h-10 w-auto object-contain mix-blend-multiply" />
-          <div className="flex flex-col">
-            <span className="text-xl font-bold text-blue-900 leading-tight">MediCare+</span>
-            <span className="text-[10px] text-[#13b3a9] font-medium tracking-wide">Multi-Speciality Hospital</span>
-          </div>
-        </div>
-
-        {/* Khối 2: Navigation Links */}
-        <nav className="hidden md:flex items-center gap-8">
-          <a href="#home" className="text-blue-600 font-semibold border-b-2 border-blue-600 pb-1 text-sm transition-all">Home</a>
-          {/* Tạm thời dẫn tới trang quản lý bác sĩ đang xây dựng. */}
-          <a href="/admin/doctors" className="text-gray-500 hover:text-blue-600 font-medium text-sm transition-colors">Find Doctors</a>
-          {/* Tạm thời dẫn tới trang quản trị chuyên khoa đang xây dựng. */}
-          <a href="/admin/specialties" className="text-gray-500 hover:text-blue-600 font-medium text-sm transition-colors">Specialties</a>
-          <a href="#appointments" className="text-gray-500 hover:text-blue-600 font-medium text-sm transition-colors">Appointments</a>
-          <a href="#about" className="text-gray-500 hover:text-blue-600 font-medium text-sm transition-colors">About Us</a>
-          <a href="#contact" className="text-gray-500 hover:text-blue-600 font-medium text-sm transition-colors">Contact</a>
+    <header className="site-header">
+      <div className="site-header-inner">
+        <Brand />
+        <nav className="desktop-nav" aria-label="Điều hướng chính">
+          {links.map((link) => <a key={link.href} href={link.href} aria-current={current(link.href)}>{link.label}</a>)}
         </nav>
-
-        {/* Khối 3: Buttons */}
-        <div className="flex items-center gap-4">
-          <button className="px-5 py-2 text-sm font-medium text-blue-900 border border-gray-300 rounded-lg hover:bg-blue-50 transition-colors">
-            Sign In
-          </button>
-          <button className="px-5 py-2.5 text-sm font-medium text-white bg-blue-900 rounded-lg hover:bg-blue-800 transition-colors shadow-sm">
-            Book Appointment
+        <div className="header-actions">
+          {isAuthenticated
+            ? <a className="header-account" href="/me/profile" title="Hồ sơ của tôi"><span className="header-avatar" aria-hidden="true">{initials(name)}</span><span className="header-account-text"><strong>{name}</strong><small>{roleLabels[role]}</small></span></a>
+            : <a className="header-login" href="/login">Đăng nhập</a>}
+          {(!isAuthenticated || canBook(role)) && path !== '/appointments' && <a className="btn-primary btn-sm header-cta" href="/appointments"><CalendarPlus size={16} aria-hidden="true" />Đặt lịch khám</a>}
+          <button
+            type="button"
+            className="mobile-menu-toggle"
+            aria-label={isMenuOpen ? 'Đóng menu' : 'Mở menu'}
+            aria-expanded={isMenuOpen}
+            aria-controls="mobile-navigation"
+            onClick={() => setIsMenuOpen((open) => !open)}
+          >
+            {isMenuOpen ? <X size={22} /> : <Menu size={22} />}
           </button>
         </div>
       </div>
+      {isMenuOpen && (
+        <nav
+          id="mobile-navigation"
+          className="mobile-nav"
+          aria-label="Điều hướng trên di động"
+          onClick={(event) => { if (event.target.closest('a')) closeMenu() }}
+          onKeyDown={(event) => {
+            if (event.key === 'Escape') {
+              closeMenu()
+              document.querySelector('.mobile-menu-toggle')?.focus()
+            }
+          }}
+        >
+          <a href="/" aria-current={path === '/' ? 'page' : undefined}>Trang chủ</a>
+          {links.map((link) => <a key={link.href} href={link.href} aria-current={current(link.href)}>{link.label}</a>)}
+          {isAuthenticated ? <a href="/me/profile">Hồ sơ của tôi</a> : <a href="/login">Đăng nhập</a>}
+          {(!isAuthenticated || canBook(role)) && <a href="/appointments" className="btn-primary">Đặt lịch khám</a>}
+        </nav>
+      )}
     </header>
   )
 }
-
-export default Header

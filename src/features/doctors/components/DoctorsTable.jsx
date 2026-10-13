@@ -44,20 +44,21 @@ function LoadingRows() {
   ))
 }
 
-function DoctorsTable({ doctors, isLoading, actionId, onEdit, onDelete }) {
+function DoctorsTable({ doctors, isLoading, actionId, onEdit, onDelete, emptyMessage }) {
   return (
     <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-      <div className="overflow-x-auto">
+      <div className="overflow-x-auto" role="region" aria-label="Danh sách bác sĩ, cuộn ngang để xem đầy đủ" tabIndex={0}>
         <table className="min-w-[1120px] w-full border-collapse text-left">
+          <caption className="sr-only">Danh sách bác sĩ</caption>
           <thead className="border-b border-slate-200 bg-slate-50/80">
             <tr className="text-xs font-bold uppercase tracking-wide text-slate-500">
-              <th className="px-5 py-4">Bác sĩ</th>
-              <th className="px-5 py-4">Email</th>
-              <th className="px-5 py-4">Điện thoại</th>
-              <th className="px-5 py-4">Giới tính</th>
-              <th className="px-5 py-4">Bắt đầu nghề</th>
-              <th className="px-5 py-4">Kinh nghiệm</th>
-              <th className="px-5 py-4 text-right">Thao tác</th>
+              <th scope="col" className="px-5 py-4">Bác sĩ</th>
+              <th scope="col" className="px-5 py-4">Email</th>
+              <th scope="col" className="px-5 py-4">Điện thoại</th>
+              <th scope="col" className="px-5 py-4">Giới tính</th>
+              <th scope="col" className="px-5 py-4">Bắt đầu nghề</th>
+              <th scope="col" className="px-5 py-4">Kinh nghiệm</th>
+              <th scope="col" className="px-5 py-4 text-right">Thao tác</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
@@ -66,7 +67,7 @@ function DoctorsTable({ doctors, isLoading, actionId, onEdit, onDelete }) {
             {!isLoading && doctors.length === 0 && (
               <tr>
                 <td colSpan="7" className="px-5 py-14 text-center text-sm text-slate-500">
-                  Chưa có bác sĩ nào. Hãy thêm hồ sơ bác sĩ đầu tiên.
+                  {emptyMessage || 'Chưa có bác sĩ nào. Hãy thêm hồ sơ bác sĩ đầu tiên.'}
                 </td>
               </tr>
             )}
@@ -82,7 +83,7 @@ function DoctorsTable({ doctors, isLoading, actionId, onEdit, onDelete }) {
                       <div className="flex items-center gap-3">
                         <Avatar doctor={doctor} />
                         <div>
-                          <p className="font-semibold text-[#1D3557]">{doctor.fullName}</p>
+                          <p className="font-semibold text-(--ink)">{doctor.fullName}</p>
                           <p className="mt-0.5 text-xs text-slate-400">Mã số #{doctor.doctorId}</p>
                         </div>
                       </div>

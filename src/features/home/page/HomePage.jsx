@@ -1,27 +1,24 @@
-import React from 'react'
-import Header from '../../../components/layout/Header/Header';
-import HomeHeroSection from '../components/HomeHeroSection';
-import FeaturedDoctors from '../components/FeaturedDoctors';
-import BrowseSpecialties from '../components/BrowseSpecialties';
-import HowItWorks from '../components/HowItWorks';
-import TrustedStats from '../components/TrustedStats';
-import PatientTestimonials from '../components/PatientTestimonials';
-import DownloadApp from '../components/DownloadApp';
-import Footer from '../../../components/layout/Footer/Footer';
+import Header from '../../../components/layout/Header/Header'
+import Footer from '../../../components/layout/Footer/Footer'
+import HomeHeroSection from '../components/HomeHeroSection'
+import BrowseSpecialties from '../components/BrowseSpecialties'
+import FeaturedDoctors from '../components/FeaturedDoctors'
+import HowItWorks from '../components/HowItWorks'
+import { useDirectory } from '../useDirectory'
 
-const HomePage = () => {
+export default function HomePage() {
+  const directory = useDirectory()
   return (
-    <div>
+    <div className="home-page">
+      <a className="skip-link" href="#main-content">Đến nội dung chính</a>
       <Header />
-      <HomeHeroSection />
-      <FeaturedDoctors />
-      <BrowseSpecialties />
-      <HowItWorks />
-      <TrustedStats />
-      <PatientTestimonials />
-      <DownloadApp />
+      <main id="main-content" tabIndex={-1}>
+        <HomeHeroSection directory={directory} />
+        <BrowseSpecialties directory={directory} />
+        <FeaturedDoctors directory={directory} />
+        <HowItWorks />
+      </main>
       <Footer />
     </div>
   )
 }
-export default HomePage;

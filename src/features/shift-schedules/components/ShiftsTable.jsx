@@ -16,15 +16,16 @@ function LoadingRows() {
 function ShiftsTable({ shifts, isLoading, actionId, onEdit, onDelete }) {
   return (
     <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-      <div className="overflow-x-auto">
+      <div className="overflow-x-auto" role="region" aria-label="Danh sách ca làm việc, cuộn ngang để xem đầy đủ" tabIndex={0}>
         <table className="min-w-[760px] w-full border-collapse text-left">
+          <caption className="sr-only">Danh sách ca làm việc</caption>
           <thead className="border-b border-slate-200 bg-slate-50/80">
             <tr className="text-xs font-bold uppercase tracking-wide text-slate-500">
-              <th className="px-5 py-4">Ngày</th>
-              <th className="px-5 py-4">Tên ca</th>
-              <th className="px-5 py-4">Khung giờ</th>
-              <th className="px-5 py-4">Trạng thái</th>
-              <th className="px-5 py-4 text-right">Thao tác</th>
+              <th scope="col" className="px-5 py-4">Ngày</th>
+              <th scope="col" className="px-5 py-4">Tên ca</th>
+              <th scope="col" className="px-5 py-4">Khung giờ</th>
+              <th scope="col" className="px-5 py-4">Trạng thái</th>
+              <th scope="col" className="px-5 py-4 text-right">Thao tác</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
@@ -45,7 +46,7 @@ function ShiftsTable({ shifts, isLoading, actionId, onEdit, onDelete }) {
                 return (
                   <tr key={shift.shiftId} className="text-sm text-slate-600 transition hover:bg-slate-50/70">
                     <td className="px-5 py-4 font-medium text-slate-600">{DAY_LABELS[shift.dayOfWeek]}</td>
-                    <td className="px-5 py-4 font-semibold text-[#1D3557]">{shift.name}</td>
+                    <td className="px-5 py-4 font-semibold text-(--ink)">{shift.name}</td>
                     <td className="px-5 py-4 text-slate-500">{formatShiftTime(shift.startTime, shift.endTime)}</td>
                     <td className="px-5 py-4">
                       <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${shift.isActive ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-600'}`}>

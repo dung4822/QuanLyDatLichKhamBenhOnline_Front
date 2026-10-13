@@ -1,13 +1,8 @@
+import { layoutDayShifts, timeToMinutes } from '../calendarLayout'
 import { AlertTriangle, CalendarDays } from 'lucide-react'
 import { DAY_LABELS, WEEK_DAYS, formatShiftTime } from '../constants'
 
 const HOUR_HEIGHT = 68
-const MIN_EVENT_HEIGHT = 46
-
-function timeToMinutes(value) {
-  const [hours = '0', minutes = '0'] = (value || '').split(':')
-  return Number(hours) * 60 + Number(minutes)
-}
 
 function getCalendarBounds(shifts) {
   if (shifts.length === 0) {
@@ -24,34 +19,14 @@ function getCalendarBounds(shifts) {
   return { startMinute, endMinute }
 }
 
-function isOverlapping(shift, otherShift) {
-  if (shift.shiftId === otherShift.shiftId) {
-    return true
-  }
-
-  return timeToMinutes(shift.startTime) < timeToMinutes(otherShift.endTime) && timeToMinutes(shift.endTime) > timeToMinutes(otherShift.startTime)
-}
-
-function getEventStyle(shift, dayShifts, startMinute) {
-  const conflicts = dayShifts
-    .filter((otherShift) => isOverlapping(shift, otherShift))
-    .sort((firstShift, secondShift) => timeToMinutes(firstShift.startTime) - timeToMinutes(secondShift.startTime))
-  const conflictIndex = conflicts.findIndex((otherShift) => otherShift.shiftId === shift.shiftId)
-  const columnWidth = 100 / conflicts.length
-  const top = (timeToMinutes(shift.startTime) - startMinute) * (HOUR_HEIGHT / 60)
-  const height = Math.max(
-    MIN_EVENT_HEIGHT,
-    (timeToMinutes(shift.endTime) - timeToMinutes(shift.startTime)) * (HOUR_HEIGHT / 60),
-  )
-
+function getEventStyle({ shift, column, columnCount }, startMinute) {
+  const columnWidth = 100 / columnCount
   return {
-    hasOverlap: conflicts.length > 1,
-    style: {
-      top: `${top}px`,
-      left: `calc(${conflictIndex * columnWidth}% + 4px)`,
-      width: `calc(${columnWidth}% - 8px)`,
-      height: `${height}px`,
-    },
+    top: `${(timeToMinutes(shift.startTime) - startMinute) * HOUR_HEIGHT / 60}px`,
+    left: `calc(${column * columnWidth}% + 4px)`,
+    width: `calc(${columnWidth}% - 8px)`,
+    // Giữ đúng chiều cao thời gian. Ca ngắn có tên đầy đủ trong bảng chi tiết.
+    height: `${(timeToMinutes(shift.endTime) - timeToMinutes(shift.startTime)) * HOUR_HEIGHT / 60}px`,
   }
 }
 
@@ -69,7 +44,7 @@ function WeeklyShiftCalendar({ shifts, isLoading }) {
     return (
       <section className="rounded-2xl border border-dashed border-slate-300 bg-white px-5 py-12 text-center shadow-sm">
         <CalendarDays className="mx-auto h-8 w-8 text-slate-400" />
-        <h2 className="mt-3 font-bold text-[#1D3557]">Lịch tuần đang trống</h2>
+        <h2 className="mt-3 font-bold text-(--ink)">Lịch tuần đang trống</h2>
         <p className="mt-1 text-sm text-slate-500">Thêm ca làm việc đầu tiên để xem chúng hiển thị trên lịch.</p>
       </section>
     )
@@ -88,18 +63,19 @@ function WeeklyShiftCalendar({ shifts, isLoading }) {
             <CalendarDays className="h-4 w-4" />
             Lịch nhìn nhanh
           </div>
-          <h2 className="text-xl font-bold text-[#1D3557]">Ca làm việc trong tuần</h2>
-          <p className="mt-1 text-sm text-slate-500">Các ca được đặt theo đúng khung giờ để dễ phát hiện chỗ trống hoặc trùng nhau.</p>
+          <h2 className="text-xl font-bold text-(--ink)">Ca làm việc trong tuần</h2>
+          <p className="mt-1 text-sm text-slate-500">Cuộn để xem cả tuần. Thông tin đầy đủ và thao tác sửa nằm ở bảng bên dưới.</p>
         </div>
-        <div className="flex items-center gap-3 text-xs font-medium text-slate-500">
+        <div className="flex flex-wrap items-center gap-3 text-xs font-medium text-slate-500">
           <span className="flex items-center gap-1.5"><i className="h-2.5 w-2.5 rounded-full bg-blue-500" />Đang hoạt động</span>
           <span className="flex items-center gap-1.5"><i className="h-2.5 w-2.5 rounded-full bg-slate-400" />Ngừng hoạt động</span>
+          <span className="flex items-center gap-1.5"><i className="h-2.5 w-2.5 rounded-full bg-amber-400" />Trùng giờ</span>
         </div>
       </div>
 
-      <div className="overflow-x-auto">
+      <div className="calendar-scroll" role="region" aria-label="Lịch ca trong tuần, cuộn để xem đầy đủ" tabIndex={0}>
         <div className="min-w-[1020px]">
-          <div className="grid border-b border-slate-200" style={gridStyle}>
+          <div className="sticky top-0 z-10 grid border-b border-slate-200 bg-white" style={gridStyle}>
             <div className="border-r border-slate-200 px-3 py-3 text-center text-xs font-bold uppercase tracking-wide text-slate-400">Giờ</div>
             {WEEK_DAYS.map((day) => (
               <div key={day} className="border-r border-slate-200 px-3 py-3 text-center text-xs font-bold uppercase tracking-wide text-slate-500 last:border-r-0">
@@ -113,7 +89,7 @@ function WeeklyShiftCalendar({ shifts, isLoading }) {
               {hourMarks.map((minute, index) => (
                 <span
                   key={minute}
-                  style={{ top: `${index * HOUR_HEIGHT - 8}px` }}
+                  style={{ top: `${Math.max(4, Math.min(calendarHeight - 18, index * HOUR_HEIGHT - 8))}px` }}
                   className="absolute right-3 text-xs font-medium text-slate-400"
                 >
                   {String(Math.floor(minute / 60)).padStart(2, '0')}:00
@@ -134,15 +110,17 @@ function WeeklyShiftCalendar({ shifts, isLoading }) {
                     />
                   ))}
 
-                  {dayShifts.map((shift) => {
-                    const { hasOverlap, style } = getEventStyle(shift, dayShifts, startMinute)
+                  {layoutDayShifts(dayShifts).map((item) => {
+                    const { shift, columnCount } = item
+                    const hasOverlap = columnCount > 1
+                    const style = getEventStyle(item, startMinute)
 
                     return (
                       <article
                         key={shift.shiftId}
                         style={style}
                         title={`${shift.name}: ${formatShiftTime(shift.startTime, shift.endTime)}`}
-                        className={`absolute overflow-hidden rounded-lg border p-2 text-left shadow-sm ${
+                        className={`absolute overflow-hidden rounded-md border border-l-[3px] px-2 text-left py-0.5 ${
                           shift.isActive
                             ? hasOverlap
                               ? 'border-amber-300 bg-amber-50 text-amber-900'
