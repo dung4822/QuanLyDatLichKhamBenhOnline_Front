@@ -1,5 +1,7 @@
+import Modal from '../../../components/ui/Modal'
+import { getFieldErrors } from '../../../lib/apiClient'
 import { useRef, useState } from 'react'
-import { AlertCircle, Save, Trash2, UserRound, X } from 'lucide-react'
+import { AlertCircle, Save, Trash2, UserRound } from 'lucide-react'
 
 const EMPTY_FORM = {
   fullName: '',
@@ -77,39 +79,15 @@ function validate(values) {
   return errors
 }
 
-function getServerValidationErrors(error) {
-  const apiErrors = error?.data?.errors
-  if (!apiErrors || typeof apiErrors !== 'object') {
-    return {}
-  }
+const SERVER_FIELDS = ['fullName', 'phoneNumber', 'email', 'gender', 'address', 'careerStartDate', 'specialtyId', 'avatar']
 
-  const fieldMap = {
-    fullname: 'fullName',
-    phonenumber: 'phoneNumber',
-    email: 'email',
-    gender: 'gender',
-    address: 'address',
-    careerstartdate: 'careerStartDate',
-    specialtyid: 'specialtyId',
-    avatar: 'avatar',
-  }
-
-  return Object.entries(apiErrors).reduce((result, [key, messages]) => {
-    const formKey = fieldMap[key.toLowerCase()]
-    if (formKey) {
-      result[formKey] = Array.isArray(messages) ? messages[0] : messages
-    }
-    return result
-  }, {})
-}
-
-function FieldError({ children }) {
+function FieldError({ children, id }) {
   if (!children) {
     return null
   }
 
   return (
-    <p className="mt-1.5 flex items-center gap-1 text-xs font-medium text-rose-600">
+    <p id={id} role="alert" className="mt-1.5 flex items-center gap-1 text-xs font-medium text-rose-600">
       <AlertCircle className="h-3.5 w-3.5" />
       {children}
     </p>
@@ -138,7 +116,7 @@ function createDoctorFormData(values, avatarFile, shouldRemoveAvatar, isEditing)
   return formData
 }
 
-function DoctorForm({ doctor, specialties, isSaving, onSave, onCancel }) {
+function DoctorForm({ doctor, specialties, isSaving, onSave, onCancel, errorMessage }) {
   const [values, setValues] = useState(() => toFormValues(doctor))
   const [errors, setErrors] = useState({})
   const [avatarFile, setAvatarFile] = useState(null)
@@ -206,16 +184,10 @@ function DoctorForm({ doctor, specialties, isSaving, onSave, onCancel }) {
       const formData = createDoctorFormData(values, avatarFile, shouldRemoveAvatar, isEditing)
       await onSave(formData)
     } catch (error) {
-      const serverErrors = getServerValidationErrors(error)
+      const serverErrors = getFieldErrors(error, SERVER_FIELDS).fields
       if (Object.keys(serverErrors).length > 0) {
         setErrors(serverErrors)
       }
-    }
-  }
-
-  function handleBackdropClick(event) {
-    if (event.target === event.currentTarget) {
-      onCancel()
     }
   }
 
@@ -227,233 +199,226 @@ function DoctorForm({ doctor, specialties, isSaving, onSave, onCancel }) {
     }`
 
   return (
-    <div
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/40 p-4 backdrop-blur-[2px]"
-      onMouseDown={handleBackdropClick}
+    <Modal
+      title={isEditing ? 'Cập nhật bác sĩ' : 'Thêm bác sĩ'}
+      description="Thông tin rõ ràng giúp bệnh nhân tìm được bác sĩ phù hợp."
+      isBusy={isSaving}
+      onClose={onCancel}
+      errorMessage={errorMessage}
+      wide
     >
-      <section
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="doctor-form-title"
-        className="max-h-[calc(100vh-2rem)] w-full max-w-2xl overflow-y-auto rounded-2xl border border-slate-200 bg-white p-5 shadow-2xl sm:p-6"
-      >
-        <div className="mb-6 flex items-start justify-between gap-4">
-          <div>
-            <h2 id="doctor-form-title" className="text-lg font-bold text-[#1D3557]">
-              {isEditing ? 'Cập nhật bác sĩ' : 'Thêm bác sĩ'}
-            </h2>
-            <p className="mt-1 text-sm text-slate-500">
-              {isEditing ? 'Cập nhật thông tin hồ sơ bác sĩ.' : 'Điền thông tin hồ sơ bác sĩ mới.'}
-            </p>
+      {isEditing && (
+        <div className="mb-5 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5 text-sm leading-5 text-amber-800">
+          Hãy chọn lại chuyên khoa của bác sĩ trước khi lưu thay đổi.
+        </div>
+      )}
+
+      <form onSubmit={handleSubmit} noValidate className="space-y-5">
+        <div className="grid gap-5 sm:grid-cols-2">
+          <div className="sm:col-span-2">
+            <label htmlFor="doctor-full-name" className="mb-1.5 block text-sm font-semibold text-slate-700">
+              Họ và tên <span className="text-rose-600">*</span>
+            </label>
+            <input
+              id="doctor-full-name"
+              name="fullName"
+              aria-invalid={Boolean(errors.fullName)}
+              aria-describedby={errors.fullName ? 'fullName-error' : undefined}
+              value={values.fullName}
+              onChange={updateField}
+              maxLength={100}
+              disabled={isSaving}
+              placeholder="Ví dụ: Nguyễn Văn An"
+              className={inputClassName('fullName')}
+            />
+            <FieldError id="fullName-error">{errors.fullName}</FieldError>
           </div>
+
+          <div>
+            <label htmlFor="doctor-gender" className="mb-1.5 block text-sm font-semibold text-slate-700">
+              Giới tính <span className="text-rose-600">*</span>
+            </label>
+            <select
+              id="doctor-gender"
+              name="gender"
+              aria-invalid={Boolean(errors.gender)}
+              aria-describedby={errors.gender ? 'gender-error' : undefined}
+              value={values.gender}
+              onChange={updateField}
+              disabled={isSaving}
+              className={`${inputClassName('gender')} bg-white`}
+            >
+              <option value="">Chọn giới tính</option>
+              <option value="0">Nam</option>
+              <option value="1">Nữ</option>
+            </select>
+            <FieldError id="gender-error">{errors.gender}</FieldError>
+          </div>
+
+          <div>
+            <label htmlFor="doctor-career-start" className="mb-1.5 block text-sm font-semibold text-slate-700">
+              Ngày bắt đầu nghề <span className="text-rose-600">*</span>
+            </label>
+            <input
+              id="doctor-career-start"
+              name="careerStartDate"
+              aria-invalid={Boolean(errors.careerStartDate)}
+              aria-describedby={errors.careerStartDate ? 'careerStartDate-error' : undefined}
+              type="date"
+              value={values.careerStartDate}
+              onChange={updateField}
+              disabled={isSaving}
+              className={inputClassName('careerStartDate')}
+            />
+            <FieldError id="careerStartDate-error">{errors.careerStartDate}</FieldError>
+          </div>
+
+          <div>
+            <label htmlFor="doctor-phone" className="mb-1.5 block text-sm font-semibold text-slate-700">
+              Số điện thoại
+            </label>
+            <input
+              id="doctor-phone"
+              name="phoneNumber"
+              aria-invalid={Boolean(errors.phoneNumber)}
+              aria-describedby={errors.phoneNumber ? 'phoneNumber-error' : undefined}
+              value={values.phoneNumber}
+              onChange={updateField}
+              maxLength={20}
+              disabled={isSaving}
+              placeholder="0901234567"
+              className={inputClassName('phoneNumber')}
+            />
+            <FieldError id="phoneNumber-error">{errors.phoneNumber}</FieldError>
+          </div>
+
+          <div>
+            <label htmlFor="doctor-email" className="mb-1.5 block text-sm font-semibold text-slate-700">
+              Email
+            </label>
+            <input
+              id="doctor-email"
+              name="email"
+              aria-invalid={Boolean(errors.email)}
+              aria-describedby={errors.email ? 'email-error' : undefined}
+              type="email"
+              value={values.email}
+              onChange={updateField}
+              maxLength={50}
+              disabled={isSaving}
+              placeholder="doctor@hospital.vn"
+              className={inputClassName('email')}
+            />
+            <FieldError id="email-error">{errors.email}</FieldError>
+          </div>
+
+          <div className="sm:col-span-2">
+            <label htmlFor="doctor-specialty" className="mb-1.5 block text-sm font-semibold text-slate-700">
+              Chuyên khoa <span className="text-rose-600">*</span>
+            </label>
+            <select
+              id="doctor-specialty"
+              name="specialtyId"
+              aria-invalid={Boolean(errors.specialtyId)}
+              aria-describedby={errors.specialtyId ? 'specialtyId-error' : undefined}
+              value={values.specialtyId}
+              onChange={updateField}
+              disabled={isSaving}
+              className={`${inputClassName('specialtyId')} bg-white`}
+            >
+              <option value="">Chọn chuyên khoa đang sử dụng</option>
+              {specialties.map((specialty) => (
+                <option key={specialty.specialtyId} value={specialty.specialtyId}>
+                  {specialty.name}
+                </option>
+              ))}
+            </select>
+            <FieldError id="specialtyId-error">{errors.specialtyId}</FieldError>
+          </div>
+        </div>
+
+        <div>
+          <label htmlFor="doctor-address" className="mb-1.5 block text-sm font-semibold text-slate-700">
+            Địa chỉ
+          </label>
+          <textarea
+            id="doctor-address"
+            name="address"
+            aria-invalid={Boolean(errors.address)}
+            aria-describedby={errors.address ? 'address-error' : undefined}
+            value={values.address}
+            onChange={updateField}
+            maxLength={255}
+            disabled={isSaving}
+            rows={3}
+            placeholder="Ví dụ: Quận 1, TP. Hồ Chí Minh"
+            className={`${inputClassName('address')} resize-none`}
+          />
+          <div className="flex items-start justify-between gap-3">
+            <FieldError id="address-error">{errors.address}</FieldError>
+            <span className="mt-1.5 shrink-0 text-xs text-slate-400">{values.address.length}/255</span>
+          </div>
+        </div>
+
+        <div>
+          <label htmlFor="doctor-avatar" className="mb-1.5 block text-sm font-semibold text-slate-700">Ảnh đại diện</label>
+          <div className="flex flex-col gap-3 rounded-xl border border-dashed border-slate-300 bg-slate-50 p-4 sm:flex-row sm:items-center">
+            <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-full bg-blue-100 text-blue-700">
+              {avatarPreview ? (
+                <img src={avatarPreview} alt="Xem trước ảnh đại diện" className="h-full w-full object-cover" />
+              ) : (
+                <UserRound className="h-7 w-7" />
+              )}
+            </div>
+            <div className="min-w-0 flex-1">
+              <input
+                ref={avatarInputRef}
+                id="doctor-avatar"
+                aria-invalid={Boolean(errors.avatar)}
+                aria-describedby={errors.avatar ? 'avatar-error' : undefined}
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                onChange={selectAvatar}
+                disabled={isSaving}
+                className="block w-full text-sm text-slate-500 file:mr-3 file:rounded-lg file:border-0 file:bg-blue-100 file:px-3 file:py-2 file:text-sm file:font-semibold file:text-blue-700 hover:file:bg-blue-200 disabled:cursor-not-allowed"
+              />
+              <p className="mt-1.5 text-xs text-slate-500">JPEG, PNG hoặc WebP, tối đa 5 MB.</p>
+            </div>
+            {avatarPreview && (
+              <button
+                type="button"
+                onClick={removeAvatar}
+                disabled={isSaving}
+                className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-rose-200 px-3 py-2 text-xs font-semibold text-rose-600 transition hover:bg-rose-50 disabled:cursor-not-allowed"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+                Xóa ảnh
+              </button>
+            )}
+          </div>
+          <FieldError id="avatar-error">{errors.avatar}</FieldError>
+        </div>
+
+        <div className="flex flex-col-reverse gap-3 border-t border-slate-100 pt-5 sm:flex-row sm:justify-end">
           <button
             type="button"
             onClick={onCancel}
             disabled={isSaving}
-            aria-label="Đóng biểu mẫu"
-            className="rounded-lg p-2 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 disabled:cursor-not-allowed"
+            className="rounded-lg border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            <X className="h-5 w-5" />
+            Hủy
+          </button>
+          <button
+            type="submit"
+            disabled={isSaving}
+            className="inline-flex items-center justify-center gap-2 rounded-lg bg-(--brand) px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-(--brand-strong) disabled:cursor-wait disabled:opacity-70"
+          >
+            <Save className="h-4 w-4" />
+            {isSaving ? 'Đang lưu...' : isEditing ? 'Lưu thay đổi' : 'Thêm bác sĩ'}
           </button>
         </div>
-
-        {isEditing && (
-          <div className="mb-5 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5 text-sm leading-5 text-amber-800">
-            API hiện chưa trả chuyên khoa của bác sĩ. Hãy chọn lại chuyên khoa chính xác trước khi lưu.
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit} noValidate className="space-y-5">
-          <div className="grid gap-5 sm:grid-cols-2">
-            <div className="sm:col-span-2">
-              <label htmlFor="doctor-full-name" className="mb-1.5 block text-sm font-semibold text-slate-700">
-                Họ và tên <span className="text-rose-600">*</span>
-              </label>
-              <input
-                id="doctor-full-name"
-                name="fullName"
-                value={values.fullName}
-                onChange={updateField}
-                maxLength={100}
-                disabled={isSaving}
-                placeholder="Ví dụ: Nguyễn Văn An"
-                className={inputClassName('fullName')}
-              />
-              <FieldError>{errors.fullName}</FieldError>
-            </div>
-
-            <div>
-              <label htmlFor="doctor-gender" className="mb-1.5 block text-sm font-semibold text-slate-700">
-                Giới tính <span className="text-rose-600">*</span>
-              </label>
-              <select
-                id="doctor-gender"
-                name="gender"
-                value={values.gender}
-                onChange={updateField}
-                disabled={isSaving}
-                className={`${inputClassName('gender')} bg-white`}
-              >
-                <option value="">Chọn giới tính</option>
-                <option value="0">Nam</option>
-                <option value="1">Nữ</option>
-              </select>
-              <FieldError>{errors.gender}</FieldError>
-            </div>
-
-            <div>
-              <label htmlFor="doctor-career-start" className="mb-1.5 block text-sm font-semibold text-slate-700">
-                Ngày bắt đầu nghề <span className="text-rose-600">*</span>
-              </label>
-              <input
-                id="doctor-career-start"
-                name="careerStartDate"
-                type="date"
-                value={values.careerStartDate}
-                onChange={updateField}
-                disabled={isSaving}
-                className={inputClassName('careerStartDate')}
-              />
-              <FieldError>{errors.careerStartDate}</FieldError>
-            </div>
-
-            <div>
-              <label htmlFor="doctor-phone" className="mb-1.5 block text-sm font-semibold text-slate-700">
-                Số điện thoại
-              </label>
-              <input
-                id="doctor-phone"
-                name="phoneNumber"
-                value={values.phoneNumber}
-                onChange={updateField}
-                maxLength={20}
-                disabled={isSaving}
-                placeholder="0901234567"
-                className={inputClassName('phoneNumber')}
-              />
-              <FieldError>{errors.phoneNumber}</FieldError>
-            </div>
-
-            <div>
-              <label htmlFor="doctor-email" className="mb-1.5 block text-sm font-semibold text-slate-700">
-                Email
-              </label>
-              <input
-                id="doctor-email"
-                name="email"
-                type="email"
-                value={values.email}
-                onChange={updateField}
-                maxLength={50}
-                disabled={isSaving}
-                placeholder="doctor@hospital.vn"
-                className={inputClassName('email')}
-              />
-              <FieldError>{errors.email}</FieldError>
-            </div>
-
-            <div className="sm:col-span-2">
-              <label htmlFor="doctor-specialty" className="mb-1.5 block text-sm font-semibold text-slate-700">
-                Chuyên khoa <span className="text-rose-600">*</span>
-              </label>
-              <select
-                id="doctor-specialty"
-                name="specialtyId"
-                value={values.specialtyId}
-                onChange={updateField}
-                disabled={isSaving}
-                className={`${inputClassName('specialtyId')} bg-white`}
-              >
-                <option value="">Chọn chuyên khoa đang sử dụng</option>
-                {specialties.map((specialty) => (
-                  <option key={specialty.specialtyId} value={specialty.specialtyId}>
-                    {specialty.name}
-                  </option>
-                ))}
-              </select>
-              <FieldError>{errors.specialtyId}</FieldError>
-            </div>
-          </div>
-
-          <div>
-            <label htmlFor="doctor-address" className="mb-1.5 block text-sm font-semibold text-slate-700">
-              Địa chỉ
-            </label>
-            <textarea
-              id="doctor-address"
-              name="address"
-              value={values.address}
-              onChange={updateField}
-              maxLength={255}
-              disabled={isSaving}
-              rows={3}
-              placeholder="Ví dụ: Quận 1, TP. Hồ Chí Minh"
-              className={`${inputClassName('address')} resize-none`}
-            />
-            <div className="flex items-start justify-between gap-3">
-              <FieldError>{errors.address}</FieldError>
-              <span className="mt-1.5 shrink-0 text-xs text-slate-400">{values.address.length}/255</span>
-            </div>
-          </div>
-
-          <div>
-            <p className="mb-1.5 text-sm font-semibold text-slate-700">Ảnh đại diện</p>
-            <div className="flex flex-col gap-3 rounded-xl border border-dashed border-slate-300 bg-slate-50 p-4 sm:flex-row sm:items-center">
-              <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-full bg-blue-100 text-blue-700">
-                {avatarPreview ? (
-                  <img src={avatarPreview} alt="Xem trước ảnh đại diện" className="h-full w-full object-cover" />
-                ) : (
-                  <UserRound className="h-7 w-7" />
-                )}
-              </div>
-              <div className="min-w-0 flex-1">
-                <input
-                  ref={avatarInputRef}
-                  id="doctor-avatar"
-                  type="file"
-                  accept="image/jpeg,image/png,image/webp"
-                  onChange={selectAvatar}
-                  disabled={isSaving}
-                  className="block w-full text-sm text-slate-500 file:mr-3 file:rounded-lg file:border-0 file:bg-blue-100 file:px-3 file:py-2 file:text-sm file:font-semibold file:text-blue-700 hover:file:bg-blue-200 disabled:cursor-not-allowed"
-                />
-                <p className="mt-1.5 text-xs text-slate-500">JPEG, PNG hoặc WebP, tối đa 5 MB.</p>
-              </div>
-              {avatarPreview && (
-                <button
-                  type="button"
-                  onClick={removeAvatar}
-                  disabled={isSaving}
-                  className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-rose-200 px-3 py-2 text-xs font-semibold text-rose-600 transition hover:bg-rose-50 disabled:cursor-not-allowed"
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                  Xóa ảnh
-                </button>
-              )}
-            </div>
-            <FieldError>{errors.avatar}</FieldError>
-          </div>
-
-          <div className="flex flex-col-reverse gap-3 border-t border-slate-100 pt-5 sm:flex-row sm:justify-end">
-            <button
-              type="button"
-              onClick={onCancel}
-              disabled={isSaving}
-              className="rounded-lg border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              Hủy
-            </button>
-            <button
-              type="submit"
-              disabled={isSaving}
-              className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#1D3557] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#112237] disabled:cursor-wait disabled:opacity-70"
-            >
-              <Save className="h-4 w-4" />
-              {isSaving ? 'Đang lưu...' : isEditing ? 'Lưu thay đổi' : 'Thêm bác sĩ'}
-            </button>
-          </div>
-        </form>
-      </section>
-    </div>
+      </form>
+    </Modal>
   )
 }
 

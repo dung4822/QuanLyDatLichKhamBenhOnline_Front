@@ -1,56 +1,28 @@
+import SearchInput from '../../../components/ui/SearchInput'
+import { getErrorMessage } from '../../../lib/apiClient'
+import Notice from '../../../components/ui/Notice'
 import { useCallback, useEffect, useState } from 'react'
-import { AlertCircle, CheckCircle2, ClipboardList, Plus, RefreshCw, Stethoscope } from 'lucide-react'
+import { AlertCircle, Plus, RefreshCw } from 'lucide-react'
 import { getSpecialties } from '../../specialties/api/specialtiesApi'
 import { createDoctor, deleteDoctor, getDoctors, updateDoctor } from '../api/doctorsApi'
 import DoctorForm from '../components/DoctorForm'
 import DoctorsTable from '../components/DoctorsTable'
 
-function getErrorMessage(error) {
-  if (error?.status === 400) {
-    return 'Dữ liệu chưa hợp lệ hoặc email đã tồn tại. Vui lòng kiểm tra lại.'
-  }
-
-  if (error?.status === 404) {
-    return 'Bác sĩ không tồn tại hoặc đã bị xóa.'
-  }
-
-  if (error?.status === 503) {
-    return 'Không thể lưu ảnh đại diện lúc này. Vui lòng thử lại.'
-  }
-
-  if (error?.status === 500) {
-    return 'Không thể lưu dữ liệu bác sĩ. Vui lòng thử lại.'
-  }
-
-  return 'Không thể kết nối hoặc xử lý yêu cầu. Vui lòng thử lại.'
-}
-
-function Notice({ notice }) {
-  if (!notice) {
-    return null
-  }
-
-  const isSuccess = notice.type === 'success'
-  const Icon = isSuccess ? CheckCircle2 : AlertCircle
-
-  return (
-    <div
-      role={isSuccess ? 'status' : 'alert'}
-      className={`flex items-start gap-3 rounded-xl border px-4 py-3 text-sm font-medium ${
-        isSuccess
-          ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
-          : 'border-rose-200 bg-rose-50 text-rose-700'
-      }`}
-    >
-      <Icon className="mt-0.5 h-5 w-5 shrink-0" />
-      <p>{notice.message}</p>
-    </div>
-  )
+const ERROR_MESSAGES = {
+  400: 'Dữ liệu bác sĩ chưa hợp lệ. Vui lòng kiểm tra các trường được đánh dấu.',
+  404: 'Bác sĩ không tồn tại hoặc đã bị xóa.',
+  413: 'Ảnh đại diện quá lớn. Vui lòng chọn ảnh tối đa 5 MB.',
 }
 
 function DoctorsPage() {
   const [doctors, setDoctors] = useState([])
   const [specialties, setSpecialties] = useState([])
+  const [searchTerm, setSearchTerm] = useState('')
+  // Derived state: lọc trực tiếp từ danh sách gốc, không lưu thêm một state dễ bị lệch.
+  const query = searchTerm.trim().toLocaleLowerCase('vi')
+  const visibleItems = doctors.filter((item) =>
+    [item.fullName, item.email, item.phoneNumber].some((value) => (value || '').toLocaleLowerCase('vi').includes(query)),
+  )
   const [isLoading, setIsLoading] = useState(true)
   const [loadError, setLoadError] = useState('')
   const [specialtiesError, setSpecialtiesError] = useState('')
@@ -73,7 +45,7 @@ function DoctorsPage() {
     if (doctorsResult.status === 'fulfilled') {
       setDoctors(Array.isArray(doctorsResult.value) ? doctorsResult.value : [])
     } else {
-      setLoadError(getErrorMessage(doctorsResult.reason))
+      setLoadError(getErrorMessage(doctorsResult.reason, ERROR_MESSAGES))
     }
 
     if (specialtiesResult.status === 'fulfilled') {
@@ -155,7 +127,7 @@ function DoctorsPage() {
       setIsFormOpen(false)
       setSelectedDoctor(null)
     } catch (error) {
-      setNotice({ type: 'error', message: getErrorMessage(error) })
+      setNotice({ type: 'error', message: getErrorMessage(error, ERROR_MESSAGES) })
       // Để form có thể gắn lỗi validation 400 vào đúng input.
       throw error
     } finally {
@@ -179,44 +151,19 @@ function DoctorsPage() {
       setDoctors((currentDoctors) => currentDoctors.filter((item) => item.doctorId !== doctor.doctorId))
       setNotice({ type: 'success', message: 'Đã xóa bác sĩ khỏi danh sách.' })
     } catch (error) {
-      setNotice({ type: 'error', message: getErrorMessage(error) })
+      setNotice({ type: 'error', message: getErrorMessage(error, ERROR_MESSAGES) })
     } finally {
       setActionId(null)
     }
   }
 
   return (
-    <main className="min-h-screen bg-slate-50 text-slate-700">
-      <header className="border-b border-slate-200 bg-white">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#1D3557] text-white shadow-sm">
-              <Stethoscope className="h-5 w-5" />
-            </div>
-            <div>
-              <p className="text-base font-bold text-[#1D3557]">MediCare+</p>
-              <p className="text-xs font-medium text-slate-500">Khu vực quản trị</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-3">
-            <a href="/admin/specialties" className="hidden text-sm font-semibold text-slate-500 transition hover:text-blue-700 sm:inline-flex">
-              Chuyên khoa
-            </a>
-            <a href="/" className="text-sm font-semibold text-slate-500 transition hover:text-blue-700">
-              Về trang chủ
-            </a>
-          </div>
-        </div>
-      </header>
+    <section className="admin-page">
 
-      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+      <div>
         <div className="mb-7 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-blue-700">
-              <ClipboardList className="h-4 w-4" />
-              Quản lý nhân sự
-            </div>
-            <h1 className="text-2xl font-bold tracking-tight text-[#1D3557] sm:text-3xl">Bác sĩ</h1>
+            <h1 className="text-2xl font-bold tracking-tight text-(--ink) sm:text-3xl">Bác sĩ</h1>
             <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
               Quản lý hồ sơ, thông tin liên hệ và ảnh đại diện của bác sĩ trong hệ thống.
             </p>
@@ -225,7 +172,7 @@ function DoctorsPage() {
             type="button"
             onClick={openCreateForm}
             disabled={isSaving || actionId !== null}
-            className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#1D3557] px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-[#112237] disabled:cursor-not-allowed disabled:opacity-60"
+            className="inline-flex items-center justify-center gap-2 rounded-lg bg-(--brand) px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-(--brand-strong) disabled:cursor-not-allowed disabled:opacity-60"
           >
             <Plus className="h-4 w-4" />
             Thêm bác sĩ
@@ -233,7 +180,7 @@ function DoctorsPage() {
         </div>
 
         <div className="space-y-5">
-          <Notice notice={notice} />
+          <Notice notice={isFormOpen ? null : notice} />
 
           {specialtiesError && (
             <div className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
@@ -242,10 +189,20 @@ function DoctorsPage() {
             </div>
           )}
 
+          {!loadError && (
+            <SearchInput
+              value={searchTerm}
+              onChange={setSearchTerm}
+              label="Tìm tên, email hoặc số điện thoại…"
+              resultCount={visibleItems.length}
+              disabled={isLoading}
+            />
+          )}
+
           {loadError ? (
             <section className="rounded-2xl border border-rose-200 bg-white p-6 text-center shadow-sm">
               <AlertCircle className="mx-auto h-8 w-8 text-rose-500" />
-              <h2 className="mt-3 font-bold text-[#1D3557]">Không tải được danh sách</h2>
+              <h2 className="mt-3 font-bold text-(--ink)">Không tải được danh sách</h2>
               <p className="mt-1 text-sm text-slate-500">{loadError}</p>
               <button
                 type="button"
@@ -258,7 +215,8 @@ function DoctorsPage() {
             </section>
           ) : (
             <DoctorsTable
-              doctors={doctors}
+              doctors={visibleItems}
+              emptyMessage={query ? 'Không tìm thấy kết quả. Thử từ khóa khác hoặc xóa bộ lọc.' : undefined}
               isLoading={isLoading}
               actionId={actionId}
               onEdit={openEditForm}
@@ -273,12 +231,13 @@ function DoctorsPage() {
               specialties={activeSpecialties}
               isSaving={isSaving}
               onSave={saveDoctor}
+              errorMessage={notice?.type === 'error' ? notice.message : ''}
               onCancel={closeForm}
             />
           )}
         </div>
       </div>
-    </main>
+    </section>
   )
 }
 

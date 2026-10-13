@@ -1,5 +1,7 @@
+import Modal from '../../../components/ui/Modal'
+import { getFieldErrors } from '../../../lib/apiClient'
 import { useState } from 'react'
-import { AlertCircle, Building2, Save, Stethoscope, X } from 'lucide-react'
+import { AlertCircle, Building2, Save, Stethoscope } from 'lucide-react'
 import { getTodayDateString, getTomorrowDateString } from '../utils'
 
 const EMPTY_FORM = {
@@ -55,37 +57,22 @@ function validate(values, nonWorkingDays, editingId) {
   return errors
 }
 
-function getServerValidationErrors(error) {
-  const apiErrors = error?.data?.errors
-  if (!apiErrors || typeof apiErrors !== 'object') {
-    return {}
-  }
+const SERVER_FIELDS = ['date', 'doctorId', 'reason']
 
-  const fieldMap = { date: 'date', doctorid: 'doctorId', reason: 'reason' }
-
-  return Object.entries(apiErrors).reduce((result, [key, messages]) => {
-    const fieldName = fieldMap[key.toLowerCase()]
-    if (fieldName) {
-      result[fieldName] = Array.isArray(messages) ? messages[0] : messages
-    }
-    return result
-  }, {})
-}
-
-function FieldError({ children }) {
+function FieldError({ children, id }) {
   if (!children) {
     return null
   }
 
   return (
-    <p className="mt-1.5 flex items-center gap-1 text-xs font-medium text-rose-600">
+    <p id={id} role="alert" className="mt-1.5 flex items-center gap-1 text-xs font-medium text-rose-600">
       <AlertCircle className="h-3.5 w-3.5" />
       {children}
     </p>
   )
 }
 
-function NonWorkingDayForm({ nonWorkingDay, doctors, nonWorkingDays, isSaving, onSave, onCancel }) {
+function NonWorkingDayForm({ nonWorkingDay, doctors, nonWorkingDays, isSaving, onSave, onCancel, errorMessage }) {
   const [values, setValues] = useState(() => toFormValues(nonWorkingDay))
   const [errors, setErrors] = useState({})
   const isEditing = Boolean(nonWorkingDay)
@@ -121,16 +108,10 @@ function NonWorkingDayForm({ nonWorkingDay, doctors, nonWorkingDays, isSaving, o
     try {
       await onSave(payload)
     } catch (error) {
-      const serverErrors = getServerValidationErrors(error)
+      const serverErrors = getFieldErrors(error, SERVER_FIELDS).fields
       if (Object.keys(serverErrors).length > 0) {
         setErrors(serverErrors)
       }
-    }
-  }
-
-  function handleBackdropClick(event) {
-    if (event.target === event.currentTarget) {
-      onCancel()
     }
   }
 
@@ -142,155 +123,141 @@ function NonWorkingDayForm({ nonWorkingDay, doctors, nonWorkingDays, isSaving, o
     }`
 
   return (
-    <div
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/40 p-4 backdrop-blur-[2px]"
-      onMouseDown={handleBackdropClick}
+    <Modal
+      title={isEditing ? 'Cập nhật lịch nghỉ' : 'Thêm lịch nghỉ'}
+      description="Chọn một ngày nghỉ riêng, không làm thay đổi lịch tuần."
+      isBusy={isSaving}
+      onClose={onCancel}
+      errorMessage={errorMessage}
     >
-      <section
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="non-working-day-form-title"
-        className="max-h-[calc(100vh-2rem)] w-full max-w-xl overflow-y-auto rounded-2xl border border-slate-200 bg-white p-5 shadow-2xl sm:p-6"
-      >
-        <div className="mb-6 flex items-start justify-between gap-4">
-          <div>
-            <h2 id="non-working-day-form-title" className="text-lg font-bold text-[#1D3557]">
-              {isEditing ? 'Cập nhật lịch nghỉ' : 'Thêm lịch nghỉ'}
-            </h2>
-            <p className="mt-1 text-sm text-slate-500">Lịch nghỉ là ngoại lệ theo một ngày cụ thể, không làm thay đổi lịch tuần.</p>
+      <form onSubmit={handleSubmit} noValidate className="space-y-5">
+        <div>
+          <label htmlFor="non-working-date" className="mb-1.5 block text-sm font-semibold text-slate-700">
+            Ngày nghỉ <span className="text-rose-600">*</span>
+          </label>
+          <input
+            id="non-working-date"
+            name="date"
+            aria-invalid={Boolean(errors.date)}
+            aria-describedby={errors.date ? 'date-error' : undefined}
+            type="date"
+            min={getTomorrowDateString()}
+            value={values.date}
+            onChange={updateField}
+            disabled={isSaving}
+            className={inputClassName('date')}
+          />
+          <p className="mt-1.5 text-xs text-slate-500">Chỉ có thể tạo, sửa hoặc hủy lịch nghỉ cho ngày sau hôm nay.</p>
+          <FieldError id="date-error">{errors.date}</FieldError>
+        </div>
+
+        <fieldset>
+          <legend className="mb-2 text-sm font-semibold text-slate-700">Phạm vi nghỉ <span className="text-rose-600">*</span></legend>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <button
+              type="button"
+              onClick={() => changeScope('hospital')}
+              aria-pressed={values.scope === 'hospital'}
+              disabled={isSaving}
+              className={`flex items-start gap-3 rounded-xl border p-4 text-left transition ${
+                values.scope === 'hospital'
+                  ? 'border-blue-300 bg-blue-50 ring-1 ring-blue-200'
+                  : 'border-slate-200 hover:border-slate-300'
+              } disabled:cursor-not-allowed`}
+            >
+              <Building2 className={`mt-0.5 h-5 w-5 ${values.scope === 'hospital' ? 'text-blue-700' : 'text-slate-400'}`} />
+              <span>
+                <span className="block text-sm font-bold text-slate-700">Cả bệnh viện</span>
+                <span className="mt-1 block text-xs leading-5 text-slate-500">Không bác sĩ nào có lịch nhận khám ngày này.</span>
+              </span>
+            </button>
+            <button
+              type="button"
+              onClick={() => changeScope('doctor')}
+              aria-pressed={values.scope === 'doctor'}
+              disabled={isSaving}
+              className={`flex items-start gap-3 rounded-xl border p-4 text-left transition ${
+                values.scope === 'doctor'
+                  ? 'border-violet-300 bg-violet-50 ring-1 ring-violet-200'
+                  : 'border-slate-200 hover:border-slate-300'
+              } disabled:cursor-not-allowed`}
+            >
+              <Stethoscope className={`mt-0.5 h-5 w-5 ${values.scope === 'doctor' ? 'text-violet-700' : 'text-slate-400'}`} />
+              <span>
+                <span className="block text-sm font-bold text-slate-700">Một bác sĩ</span>
+                <span className="mt-1 block text-xs leading-5 text-slate-500">Chỉ bác sĩ được chọn không nhận khám ngày này.</span>
+              </span>
+            </button>
           </div>
+        </fieldset>
+
+        {values.scope === 'doctor' && (
+          <div>
+            <label htmlFor="non-working-doctor" className="mb-1.5 block text-sm font-semibold text-slate-700">
+              Bác sĩ nghỉ <span className="text-rose-600">*</span>
+            </label>
+            <select
+              id="non-working-doctor"
+              name="doctorId"
+              aria-invalid={Boolean(errors.doctorId)}
+              aria-describedby={errors.doctorId ? 'doctorId-error' : undefined}
+              value={values.doctorId}
+              onChange={updateField}
+              disabled={isSaving}
+              className={`${inputClassName('doctorId')} bg-white`}
+            >
+              <option value="">Chọn bác sĩ</option>
+              {doctors.map((doctor) => (
+                <option key={doctor.doctorId} value={doctor.doctorId}>
+                  {doctor.fullName}
+                </option>
+              ))}
+            </select>
+            <FieldError id="doctorId-error">{errors.doctorId}</FieldError>
+          </div>
+        )}
+
+        <div>
+          <label htmlFor="non-working-reason" className="mb-1.5 block text-sm font-semibold text-slate-700">Lý do</label>
+          <textarea
+            id="non-working-reason"
+            name="reason"
+            aria-invalid={Boolean(errors.reason)}
+            aria-describedby={errors.reason ? 'reason-error' : undefined}
+            value={values.reason}
+            onChange={updateField}
+            maxLength={500}
+            rows={4}
+            disabled={isSaving}
+            placeholder="Ví dụ: Quốc khánh, nghỉ phép, tham gia hội thảo..."
+            className={`${inputClassName('reason')} resize-none`}
+          />
+          <div className="flex items-start justify-between gap-3">
+            <FieldError id="reason-error">{errors.reason}</FieldError>
+            <span className="mt-1.5 shrink-0 text-xs text-slate-400">{values.reason.length}/500</span>
+          </div>
+        </div>
+
+        <div className="flex flex-col-reverse gap-3 border-t border-slate-100 pt-5 sm:flex-row sm:justify-end">
           <button
             type="button"
             onClick={onCancel}
             disabled={isSaving}
-            aria-label="Đóng biểu mẫu"
-            className="rounded-lg p-2 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 disabled:cursor-not-allowed"
+            className="rounded-lg border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            <X className="h-5 w-5" />
+            Hủy
+          </button>
+          <button
+            type="submit"
+            disabled={isSaving}
+            className="inline-flex items-center justify-center gap-2 rounded-lg bg-(--brand) px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-(--brand-strong) disabled:cursor-wait disabled:opacity-70"
+          >
+            <Save className="h-4 w-4" />
+            {isSaving ? 'Đang lưu...' : isEditing ? 'Lưu thay đổi' : 'Thêm lịch nghỉ'}
           </button>
         </div>
-
-        <form onSubmit={handleSubmit} noValidate className="space-y-5">
-          <div>
-            <label htmlFor="non-working-date" className="mb-1.5 block text-sm font-semibold text-slate-700">
-              Ngày nghỉ <span className="text-rose-600">*</span>
-            </label>
-            <input
-              id="non-working-date"
-              name="date"
-              type="date"
-              min={getTomorrowDateString()}
-              value={values.date}
-              onChange={updateField}
-              disabled={isSaving}
-              className={inputClassName('date')}
-            />
-            <p className="mt-1.5 text-xs text-slate-500">Chỉ có thể tạo, sửa hoặc hủy lịch nghỉ cho ngày sau hôm nay.</p>
-            <FieldError>{errors.date}</FieldError>
-          </div>
-
-          <fieldset>
-            <legend className="mb-2 text-sm font-semibold text-slate-700">Phạm vi nghỉ <span className="text-rose-600">*</span></legend>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <button
-                type="button"
-                onClick={() => changeScope('hospital')}
-                disabled={isSaving}
-                className={`flex items-start gap-3 rounded-xl border p-4 text-left transition ${
-                  values.scope === 'hospital'
-                    ? 'border-blue-300 bg-blue-50 ring-1 ring-blue-200'
-                    : 'border-slate-200 hover:border-slate-300'
-                } disabled:cursor-not-allowed`}
-              >
-                <Building2 className={`mt-0.5 h-5 w-5 ${values.scope === 'hospital' ? 'text-blue-700' : 'text-slate-400'}`} />
-                <span>
-                  <span className="block text-sm font-bold text-slate-700">Cả bệnh viện</span>
-                  <span className="mt-1 block text-xs leading-5 text-slate-500">Không bác sĩ nào có lịch nhận khám ngày này.</span>
-                </span>
-              </button>
-              <button
-                type="button"
-                onClick={() => changeScope('doctor')}
-                disabled={isSaving}
-                className={`flex items-start gap-3 rounded-xl border p-4 text-left transition ${
-                  values.scope === 'doctor'
-                    ? 'border-violet-300 bg-violet-50 ring-1 ring-violet-200'
-                    : 'border-slate-200 hover:border-slate-300'
-                } disabled:cursor-not-allowed`}
-              >
-                <Stethoscope className={`mt-0.5 h-5 w-5 ${values.scope === 'doctor' ? 'text-violet-700' : 'text-slate-400'}`} />
-                <span>
-                  <span className="block text-sm font-bold text-slate-700">Một bác sĩ</span>
-                  <span className="mt-1 block text-xs leading-5 text-slate-500">Chỉ bác sĩ được chọn không nhận khám ngày này.</span>
-                </span>
-              </button>
-            </div>
-          </fieldset>
-
-          {values.scope === 'doctor' && (
-            <div>
-              <label htmlFor="non-working-doctor" className="mb-1.5 block text-sm font-semibold text-slate-700">
-                Bác sĩ nghỉ <span className="text-rose-600">*</span>
-              </label>
-              <select
-                id="non-working-doctor"
-                name="doctorId"
-                value={values.doctorId}
-                onChange={updateField}
-                disabled={isSaving}
-                className={`${inputClassName('doctorId')} bg-white`}
-              >
-                <option value="">Chọn bác sĩ</option>
-                {doctors.map((doctor) => (
-                  <option key={doctor.doctorId} value={doctor.doctorId}>
-                    {doctor.fullName}
-                  </option>
-                ))}
-              </select>
-              <FieldError>{errors.doctorId}</FieldError>
-            </div>
-          )}
-
-          <div>
-            <label htmlFor="non-working-reason" className="mb-1.5 block text-sm font-semibold text-slate-700">Lý do</label>
-            <textarea
-              id="non-working-reason"
-              name="reason"
-              value={values.reason}
-              onChange={updateField}
-              maxLength={500}
-              rows={4}
-              disabled={isSaving}
-              placeholder="Ví dụ: Quốc khánh, nghỉ phép, tham gia hội thảo..."
-              className={`${inputClassName('reason')} resize-none`}
-            />
-            <div className="flex items-start justify-between gap-3">
-              <FieldError>{errors.reason}</FieldError>
-              <span className="mt-1.5 shrink-0 text-xs text-slate-400">{values.reason.length}/500</span>
-            </div>
-          </div>
-
-          <div className="flex flex-col-reverse gap-3 border-t border-slate-100 pt-5 sm:flex-row sm:justify-end">
-            <button
-              type="button"
-              onClick={onCancel}
-              disabled={isSaving}
-              className="rounded-lg border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              Hủy
-            </button>
-            <button
-              type="submit"
-              disabled={isSaving}
-              className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#1D3557] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#112237] disabled:cursor-wait disabled:opacity-70"
-            >
-              <Save className="h-4 w-4" />
-              {isSaving ? 'Đang lưu...' : isEditing ? 'Lưu thay đổi' : 'Thêm lịch nghỉ'}
-            </button>
-          </div>
-        </form>
-      </section>
-    </div>
+      </form>
+    </Modal>
   )
 }
 

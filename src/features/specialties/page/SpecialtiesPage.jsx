@@ -1,5 +1,8 @@
+import SearchInput from '../../../components/ui/SearchInput'
+import { getErrorMessage } from '../../../lib/apiClient'
+import Notice from '../../../components/ui/Notice'
 import { useCallback, useEffect, useState } from 'react'
-import { AlertCircle, CheckCircle2, ClipboardList, Plus, RefreshCw, Stethoscope } from 'lucide-react'
+import { AlertCircle, Plus, RefreshCw } from 'lucide-react'
 import {
   createSpecialty,
   deleteSpecialty,
@@ -9,43 +12,19 @@ import {
 import SpecialtyForm from '../components/SpecialtyForm'
 import SpecialtiesTable from '../components/SpecialtiesTable'
 
-function getErrorMessage(error) {
-  if (error?.status === 400) {
-    return 'Tên chuyên khoa đã tồn tại hoặc dữ liệu không hợp lệ.'
-  }
-
-  if (error?.status === 404) {
-    return 'Chuyên khoa không tồn tại hoặc đã bị thay đổi.'
-  }
-
-  return 'Không thể kết nối hoặc xử lý yêu cầu. Vui lòng thử lại.'
-}
-
-function Notice({ notice }) {
-  if (!notice) {
-    return null
-  }
-
-  const isSuccess = notice.type === 'success'
-  const Icon = isSuccess ? CheckCircle2 : AlertCircle
-
-  return (
-    <div
-      role={isSuccess ? 'status' : 'alert'}
-      className={`flex items-start gap-3 rounded-xl border px-4 py-3 text-sm font-medium ${
-        isSuccess
-          ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
-          : 'border-rose-200 bg-rose-50 text-rose-700'
-      }`}
-    >
-      <Icon className="mt-0.5 h-5 w-5 shrink-0" />
-      <p>{notice.message}</p>
-    </div>
-  )
+const ERROR_MESSAGES = {
+  400: 'Dữ liệu chuyên khoa chưa hợp lệ. Vui lòng kiểm tra các trường được đánh dấu.',
+  404: 'Chuyên khoa không tồn tại hoặc đã bị thay đổi.',
 }
 
 function SpecialtiesPage() {
   const [specialties, setSpecialties] = useState([])
+  const [searchTerm, setSearchTerm] = useState('')
+  // Derived state: lọc trực tiếp từ danh sách gốc, không lưu thêm một state dễ bị lệch.
+  const query = searchTerm.trim().toLocaleLowerCase('vi')
+  const visibleItems = specialties.filter((item) =>
+    [item.name, item.description].some((value) => (value || '').toLocaleLowerCase('vi').includes(query)),
+  )
   const [isLoading, setIsLoading] = useState(true)
   const [loadError, setLoadError] = useState('')
   const [notice, setNotice] = useState(null)
@@ -62,7 +41,7 @@ function SpecialtiesPage() {
       const data = await getSpecialties()
       setSpecialties(data)
     } catch (error) {
-      setLoadError(getErrorMessage(error))
+      setLoadError(getErrorMessage(error, ERROR_MESSAGES))
     } finally {
       setIsLoading(false)
     }
@@ -119,7 +98,7 @@ function SpecialtiesPage() {
       setIsFormOpen(false)
       setSelectedSpecialty(null)
     } catch (error) {
-      setNotice({ type: 'error', message: getErrorMessage(error) })
+      setNotice({ type: 'error', message: getErrorMessage(error, ERROR_MESSAGES) })
       // Form cần nhận lại lỗi để gắn lỗi 400 vào đúng ô nhập liệu.
       throw error
     } finally {
@@ -152,7 +131,7 @@ function SpecialtiesPage() {
       )
       setNotice({ type: 'success', message: 'Chuyên khoa đã được ngừng sử dụng.' })
     } catch (error) {
-      setNotice({ type: 'error', message: getErrorMessage(error) })
+      setNotice({ type: 'error', message: getErrorMessage(error, ERROR_MESSAGES) })
     } finally {
       setActionId(null)
     }
@@ -176,47 +155,19 @@ function SpecialtiesPage() {
       )
       setNotice({ type: 'success', message: 'Chuyên khoa đã được kích hoạt lại.' })
     } catch (error) {
-      setNotice({ type: 'error', message: getErrorMessage(error) })
+      setNotice({ type: 'error', message: getErrorMessage(error, ERROR_MESSAGES) })
     } finally {
       setActionId(null)
     }
   }
 
   return (
-    <main className="min-h-screen bg-slate-50 text-slate-700">
-      <header className="border-b border-slate-200 bg-white">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#1D3557] text-white shadow-sm">
-              <Stethoscope className="h-5 w-5" />
-            </div>
-            <div>
-              <p className="text-base font-bold text-[#1D3557]">MediCare+</p>
-              <p className="text-xs font-medium text-slate-500">Khu vực quản trị</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-3">
-            <span className="hidden rounded-full bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-700 sm:inline-flex">
-              Danh mục hệ thống
-            </span>
-            <a
-              href="/"
-              className="text-sm font-semibold text-slate-500 transition hover:text-blue-700"
-            >
-              Về trang chủ
-            </a>
-          </div>
-        </div>
-      </header>
+    <section className="admin-page">
 
-      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+      <div>
         <div className="mb-7 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-blue-700">
-              <ClipboardList className="h-4 w-4" />
-              Quản lý danh mục
-            </div>
-            <h1 className="text-2xl font-bold tracking-tight text-[#1D3557] sm:text-3xl">Chuyên khoa</h1>
+            <h1 className="text-2xl font-bold tracking-tight text-(--ink) sm:text-3xl">Chuyên khoa</h1>
             <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
               Thêm, cập nhật hoặc ngừng sử dụng các chuyên khoa hiển thị trong hệ thống.
             </p>
@@ -225,7 +176,7 @@ function SpecialtiesPage() {
             type="button"
             onClick={openCreateForm}
             disabled={isSaving || actionId !== null}
-            className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#1D3557] px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-[#112237] disabled:cursor-not-allowed disabled:opacity-60"
+            className="inline-flex items-center justify-center gap-2 rounded-lg bg-(--brand) px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-(--brand-strong) disabled:cursor-not-allowed disabled:opacity-60"
           >
             <Plus className="h-4 w-4" />
             Thêm chuyên khoa
@@ -233,12 +184,22 @@ function SpecialtiesPage() {
         </div>
 
         <div className="space-y-5">
-          <Notice notice={notice} />
+          <Notice notice={isFormOpen ? null : notice} />
+
+          {!loadError && (
+            <SearchInput
+              value={searchTerm}
+              onChange={setSearchTerm}
+              label="Tìm tên hoặc mô tả chuyên khoa…"
+              resultCount={visibleItems.length}
+              disabled={isLoading}
+            />
+          )}
 
           {loadError ? (
             <section className="rounded-2xl border border-rose-200 bg-white p-6 text-center shadow-sm">
               <AlertCircle className="mx-auto h-8 w-8 text-rose-500" />
-              <h2 className="mt-3 font-bold text-[#1D3557]">Không tải được danh sách</h2>
+              <h2 className="mt-3 font-bold text-(--ink)">Không tải được danh sách</h2>
               <p className="mt-1 text-sm text-slate-500">{loadError}</p>
               <button
                 type="button"
@@ -251,7 +212,8 @@ function SpecialtiesPage() {
             </section>
           ) : (
             <SpecialtiesTable
-              specialties={specialties}
+              specialties={visibleItems}
+              emptyMessage={query ? 'Không tìm thấy kết quả. Thử từ khóa khác hoặc xóa bộ lọc.' : undefined}
               isLoading={isLoading}
               actionId={actionId}
               onEdit={openEditForm}
@@ -266,12 +228,13 @@ function SpecialtiesPage() {
               specialty={selectedSpecialty}
               isSaving={isSaving}
               onSave={saveSpecialty}
+              errorMessage={notice?.type === 'error' ? notice.message : ''}
               onCancel={closeForm}
             />
           )}
         </div>
       </div>
-    </main>
+    </section>
   )
 }
 

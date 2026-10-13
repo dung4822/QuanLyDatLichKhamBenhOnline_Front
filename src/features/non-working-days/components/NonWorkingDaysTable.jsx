@@ -14,15 +14,16 @@ function LoadingRows() {
 function NonWorkingDaysTable({ nonWorkingDays, isLoading, actionId, onEdit, onDelete }) {
   return (
     <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-      <div className="overflow-x-auto">
+      <div className="overflow-x-auto" role="region" aria-label="Danh sách ngày nghỉ, cuộn ngang để xem đầy đủ" tabIndex={0}>
         <table className="min-w-[920px] w-full border-collapse text-left">
+          <caption className="sr-only">Danh sách ngày nghỉ</caption>
           <thead className="border-b border-slate-200 bg-slate-50/80">
             <tr className="text-xs font-bold uppercase tracking-wide text-slate-500">
-              <th className="px-5 py-4">Ngày nghỉ</th>
-              <th className="px-5 py-4">Phạm vi</th>
-              <th className="px-5 py-4">Lý do</th>
-              <th className="px-5 py-4">Trạng thái</th>
-              <th className="px-5 py-4 text-right">Thao tác</th>
+              <th scope="col" className="px-5 py-4">Ngày nghỉ</th>
+              <th scope="col" className="px-5 py-4">Phạm vi</th>
+              <th scope="col" className="px-5 py-4">Lý do</th>
+              <th scope="col" className="px-5 py-4">Trạng thái</th>
+              <th scope="col" className="px-5 py-4 text-right">Thao tác</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
@@ -39,7 +40,7 @@ function NonWorkingDaysTable({ nonWorkingDays, isLoading, actionId, onEdit, onDe
 
               return (
                 <tr key={item.nonWorkingDayId} className="text-sm text-slate-600 transition hover:bg-slate-50/70">
-                  <td className="whitespace-nowrap px-5 py-4 font-semibold text-[#1D3557]">{formatDate(item.date)}</td>
+                  <td className="whitespace-nowrap px-5 py-4 font-semibold text-(--ink)">{formatDate(item.date)}</td>
                   <td className="px-5 py-4">
                     <div className="flex items-center gap-2">
                       <span className={`flex h-8 w-8 items-center justify-center rounded-lg ${isHospitalClosure ? 'bg-rose-100 text-rose-700' : 'bg-violet-100 text-violet-700'}`}>

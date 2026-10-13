@@ -1,0 +1,44 @@
+.patients-page { color: var(--text); }
+.patients-page > div:first-child { padding-bottom: 26px; border-bottom: 1px solid var(--line); }
+.patients-page > div:first-child > div > div { display: none; }
+.patients-page h1 { color: var(--ink); font-weight: 600; letter-spacing: -.7px; }
+.patients-page > div:first-child > div > p { color: var(--muted); }
+.patients-page > div:first-child > button { background: var(--brand); border-radius: var(--radius-sm); box-shadow: none; font-weight: 500; }
+.patients-page input[type="search"] { border-radius: var(--radius-sm); border-color: var(--line); box-shadow: none; }
+.patients-page input[type="search"]:focus { border-color: var(--brand); outline: 2px solid #74818b22; }
+.patients-page table { min-width: 980px; }
+.patients-page div:has(> div > table) { border-radius: var(--radius-sm); box-shadow: none; border-color: var(--line); }
+.patients-page table th { background: var(--canvas); color: var(--muted); font-size: 13px; font-weight: 500; text-transform: none; letter-spacing: 0; padding: 15px 20px; }
+.patients-page table td { padding: 18px 20px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.patients-page table tbody tr:hover { background: var(--canvas); }
+.patients-page table td:first-child span { display: none; }
+.patients-page table td:first-child p { color: var(--ink); font-weight: 550; }
+.patients-page table td:nth-child(3) span { background: transparent; color: var(--muted); padding: 0; border-radius: 0; font-size: 14px; font-weight: 400; }
+.patients-page table td:last-child button { border-color: transparent; background: transparent; border-radius: var(--radius-sm); color: var(--muted); }
+.patients-page table td:last-child button:hover { background: var(--hover); color: var(--ink); }
+.patients-page table td:last-child button:last-child:hover { background: #fcf1f1; color: #a23939; }
+.patients-page .app-modal { border-radius: var(--radius); box-shadow: 0 20px 70px #15202b26; }
+.patients-page .app-modal::backdrop { background: #1f28364d; backdrop-filter: blur(2px); }
+.patients-page .modal-inner { padding: 30px; }
+.patients-page .modal-header { padding-bottom: 22px; border-bottom: 1px solid var(--line); }
+.patients-page .modal-header h2 { font-size: 23px; font-weight: 600; color: var(--ink); letter-spacing: -.5px; }
+.patients-page .modal-header p { color: var(--muted); }
+.patients-page .modal-close { background: transparent; border-radius: var(--radius-sm); }
+.patients-page .app-modal label { color: var(--text); font-weight: 500; }
+.patients-page .app-modal input, .patients-page .app-modal textarea, .patients-page .app-modal select { border-radius: var(--radius-sm); border-color: var(--line); }
+.patients-page .app-modal input:focus, .patients-page .app-modal textarea:focus, .patients-page .app-modal select:focus { border-color: var(--brand); --tw-ring-color: #74818b18; }
+.patients-page .app-modal [aria-invalid="true"] { border-color: #b94f4f; }
+.patients-page .app-modal button[type="submit"], .patients-page .app-modal button.bg-\[\#1D3557\] { background: var(--brand); border-radius: var(--radius-sm); font-weight: 500; }
+.patients-page .patient-detail-heading { padding: 0 0 22px; border-bottom: 1px solid var(--line); }
+.patient-detail-heading > span { display: none; }
+.patients-page .patient-detail-heading h3 { color: var(--ink); font-size: 22px; font-weight: 550; }
+.patients-page .patient-detail-heading p { color: var(--muted); }
+.patients-page .patient-detail-heading + div > div > .flex,
+.patients-page .patient-detail-heading + div > .flex { background: transparent; padding: 14px 0; border-radius: 0; border-bottom: 1px solid var(--line); }
+.patients-page .patient-detail-heading + div .flex > span { display: none; }
+.patients-page .patient-detail-heading + div p:first-child { color: var(--muted); font-size: 14px; text-transform: none; letter-spacing: 0; font-weight: 400; }
+.patients-page .patient-detail-heading + div p:last-child { color: var(--ink); font-size: 15px; font-weight: 400; margin-top: 8px; }
+@media (max-width: 640px) {
+  .patients-page .modal-inner { padding: 22px; }
+  .patients-page h1 { font-size: 28px; }
+}

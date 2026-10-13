@@ -1,0 +1,30 @@
+/* Một bảng màu duy nhất cho toàn hệ thống. Đổi màu ở đây, mọi trang đổi theo. */
+:root {
+  --brand: #0b57a8;          /* xanh dương logo: nút chính, link, trạng thái đang chọn */
+  --brand-strong: #084688;   /* hover/active của nút chính */
+  --brand-soft: #eaf2fb;     /* nền mục đang chọn */
+  --accent: #0b8a83;         /* xanh ngọc logo (đậm hơn để chữ đủ tương phản) */
+  --accent-bright: #12b3aa;  /* xanh ngọc nguyên bản: chấm nhỏ, icon */
+  --accent-soft: #e8f6f5;
+
+  --ink: #14263b;            /* tiêu đề */
+  --text: #3b4c5e;           /* nội dung */
+  --muted: #627386;          /* chữ phụ (đạt AA trên nền trắng) */
+  --subtle: #8a98a8;         /* placeholder, icon mờ */
+  --line: #e3e8ef;           /* viền */
+  --line-strong: #cdd6e1;
+  --canvas: #f6f8fb;         /* nền trang */
+  --surface: #ffffff;        /* nền thẻ */
+  --hover: #f1f5fa;
+
+  --danger: #b42318;
+  --danger-soft: #fef3f2;
+  --danger-line: #f6cfcb;
+  --warning-soft: #fff8eb;
+  --warning-line: #f0dcb1;
+
+  --radius-sm: 8px;
+  --radius: 10px;
+  --radius-lg: 14px;
+  --shadow-pop: 0 12px 32px rgb(20 38 59 / 12%);
+}

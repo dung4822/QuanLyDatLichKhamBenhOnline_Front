@@ -7,6 +7,8 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
+    "test": "node --test tests/calendarLayout.test.mjs tests/appointmentSlots.test.mjs tests/appointments.test.mjs tests/auth.test.mjs tests/chat.test.mjs tests/sessionRestore.test.mjs tests/sessionRestoreGuest.test.mjs tests/sessionRestoreRace.test.mjs tests/uiSmoke.test.mjs",
+    "test:ui": "node tests/fixtures/auth-preview.mjs",
     "preview": "vite preview"
   },
   "dependencies": {
