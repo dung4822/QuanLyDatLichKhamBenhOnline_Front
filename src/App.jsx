@@ -25,6 +25,8 @@ import { restoreSession } from './features/auth/api'
 import PublicLayout from './features/auth/components/PublicLayout'
 import DirectoryPage from './features/auth/page/DirectoryPage'
 import ChatPage from './features/chat/page/ChatPage'
+import ChatWidget from './features/chat/components/ChatWidget'
+import DemoAccountsPage from './features/demo/DemoAccountsPage'
 
 // Route map: thêm trang quản trị ở đây, không cần lặp lại khung layout.
 const routes = {
@@ -44,6 +46,7 @@ const routes = {
   '/doctors': { component: DirectoryPage, title: 'Tìm bác sĩ', public: true },
   '/specialties': { component: DirectoryPage, title: 'Tìm bác sĩ', public: true },
   '/availability': { component: AppointmentSlotsPage, title: 'Giờ khám còn trống', public: true },
+  '/demo-accounts': { component: DemoAccountsPage, title: 'Tài khoản dùng thử', public: true },
 }
 
 function Redirect({ to }) {
@@ -84,20 +87,27 @@ function App() {
     document.title = `${title} | MediCare+`
   }, [title])
 
-  if (path === '/') return <HomePage key={version} />
-  if (isRestoring && (isAuthRoute || (Page && !route.public))) return <p className="route-message" role="status">Đang kiểm tra phiên đăng nhập…</p>
-  if (isAuthRoute) {
-    if (isAuthenticated) return <Redirect to={loginDestination(next, role)} />
-    return path === '/register' ? <RegisterPage returnTo={next} /> : <LoginPage returnTo={next} />
+  const page = renderPage()
+  // Khung chat nổi trên mọi trang, trừ trang đăng nhập/đăng ký và trang trợ lý toàn màn hình.
+  const showWidget = !isRestoring && !isAuthRoute && path !== '/me/assistant'
+  return <>{page}{showWidget && <ChatWidget />}</>
+
+  function renderPage() {
+    if (path === '/') return <HomePage key={version} />
+    if (isRestoring && (isAuthRoute || (Page && !route.public))) return <p className="route-message" role="status">Đang kiểm tra phiên đăng nhập…</p>
+    if (isAuthRoute) {
+      if (isAuthenticated) return <Redirect to={loginDestination(next, role)} />
+      return path === '/register' ? <RegisterPage returnTo={next} /> : <LoginPage returnTo={next} />
+    }
+    if (!Page) return <RouteMessage role={role} />
+    if (route.public) return <PublicLayout><Page key={`${location}/${version}`} /></PublicLayout>
+    if (!isAuthenticated) return <LoginPage returnTo={location} />
+    if (!canVisit(path, role)) return <RouteMessage denied role={role} />
+    const content = <Page key={`${account.userAccountId}/${version}/${location}`} />
+    if (path.startsWith('/admin/')) return <AdminLayout currentPath={path}>{content}</AdminLayout>
+    if (path.startsWith('/me/')) return <AccountLayout path={path}>{content}</AccountLayout>
+    return content
   }
-  if (!Page) return <RouteMessage role={role} />
-  if (route.public) return <PublicLayout><Page key={`${location}/${version}`} /></PublicLayout>
-  if (!isAuthenticated) return <LoginPage returnTo={location} />
-  if (!canVisit(path, role)) return <RouteMessage denied role={role} />
-  const content = <Page key={`${account.userAccountId}/${version}/${location}`} />
-  if (path.startsWith('/admin/')) return <AdminLayout currentPath={path}>{content}</AdminLayout>
-  if (path.startsWith('/me/')) return <AccountLayout path={path}>{content}</AccountLayout>
-  return content
 }
 
 export default App

@@ -1,0 +1,25 @@
+.demo-page { max-width: 1080px; margin: 0 auto; padding: 40px 24px 64px; }
+.demo-heading h1 { color: var(--ink); font-size: clamp(26px, 3vw, 34px); font-weight: 650; letter-spacing: -.6px; }
+.demo-heading p { margin-top: 8px; color: var(--muted); font-size: 15px; line-height: 1.7; }
+
+.demo-notice { display: flex; gap: 14px; align-items: flex-start; margin: 24px 0 28px; padding: 16px 18px; border-radius: var(--radius-lg); background: #fff8e6; border: 1px solid #f3dca4; color: #6b4b0f; }
+.demo-notice svg { flex-shrink: 0; margin-top: 2px; color: #b7791f; }
+.demo-notice strong { display: block; font-size: 15px; color: #5a3d06; }
+.demo-notice p { margin-top: 4px; font-size: 14px; line-height: 1.7; }
+
+.demo-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: 18px; }
+.demo-card { display: flex; flex-direction: column; gap: 14px; padding: 22px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-lg); }
+.demo-card h2 { color: var(--ink); font-size: 18px; font-weight: 650; }
+.demo-note { flex: 1; color: var(--muted); font-size: 14px; line-height: 1.6; }
+.demo-card dl { display: grid; gap: 8px; }
+.demo-card dl > div { display: grid; grid-template-columns: 72px 1fr; align-items: center; gap: 8px; font-size: 13px; }
+.demo-card dt { color: var(--muted); }
+.demo-card dd { display: flex; align-items: center; justify-content: space-between; gap: 6px; min-width: 0; padding: 6px 6px 6px 10px; background: var(--canvas); border-radius: var(--radius); }
+.demo-card code { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: 13px; color: var(--ink); overflow-wrap: anywhere; }
+.demo-copy { flex-shrink: 0; display: grid; place-items: center; width: 28px; height: 28px; border-radius: 6px; color: var(--muted); }
+.demo-copy:hover { background: var(--surface); color: var(--brand); }
+
+/* Gợi ý trên trang đăng nhập */
+.demo-login-hint { display: flex; gap: 10px; align-items: flex-start; margin-bottom: 18px; padding: 12px 14px; border-radius: var(--radius); background: #fff8e6; border: 1px solid #f3dca4; color: #6b4b0f; font-size: 13px; line-height: 1.6; }
+.demo-login-hint svg { flex-shrink: 0; margin-top: 2px; color: #b7791f; }
+.demo-login-hint a { font-weight: 650; color: var(--brand); text-decoration: underline; }

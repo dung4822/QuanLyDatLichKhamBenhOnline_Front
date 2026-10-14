@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react'
-import { ArrowRight, ShieldCheck } from 'lucide-react'
+import { ArrowRight, Hourglass, ShieldCheck } from 'lucide-react'
 import Notice from '../../../components/ui/Notice'
 import AuthLayout from '../components/AuthLayout'
 import { Field, PasswordField } from '../components/FormFields'
@@ -7,11 +7,16 @@ import { authError, login } from '../api'
 import { loginDestination } from '../permissions'
 import { useAuth } from '../useAuth'
 import { navigate } from '../../../lib/navigation'
+import { DEMO_ACCOUNTS, findDemoAccount } from '../../demo/demoAccounts'
+import '../../demo/demo.css'
+
+// /login?demo=patient (từ trang tài khoản dùng thử) điền sẵn tài khoản demo; URL chỉ chứa tên vai trò.
+const demoFromUrl = () => typeof window === 'undefined' ? null : findDemoAccount(new URLSearchParams(window.location.search).get('demo'))
 
 export default function LoginPage({ returnTo }) {
   const { reason } = useAuth()
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
+  const [email, setEmail] = useState(() => demoFromUrl()?.email || '')
+  const [password, setPassword] = useState(() => demoFromUrl()?.password || '')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const pending = useRef(false)
@@ -31,6 +36,10 @@ export default function LoginPage({ returnTo }) {
   return <AuthLayout>
     <h1>Chào mừng trở lại.</h1>
     <p className="auth-description">Đăng nhập để tiếp tục chăm sóc sức khỏe<br className="desktop-break" /> và quản lý lịch hẹn của bạn.</p>
+    <div className="demo-login-hint" role="note">
+      <Hourglass size={16} aria-hidden="true" />
+      <p>Lần đầu sử dụng có thể mất <strong>vài phút</strong> để máy chủ khởi động, nếu đăng nhập chậm hoặc lỗi hãy đợi rồi thử lại. Dùng thử nhanh: {DEMO_ACCOUNTS.map((demo, index) => <span key={demo.key}>{index > 0 && ' · '}<button type="button" className="account-text-link" onClick={() => { setEmail(demo.email); setPassword(demo.password) }} disabled={busy}>{demo.role}</button></span>)} (<a href="/demo-accounts">xem tất cả</a>)</p>
+    </div>
     {reason && !error && <p className="account-info" role="status">{reason}</p>}
     <Notice notice={error ? { type: 'error', message: error } : null} />
     <form className="account-form" onSubmit={submit} aria-busy={busy}>

@@ -12,6 +12,7 @@ function linksFor(role) {
     { label: 'Tìm bác sĩ', href: '/doctors' },
     { label: 'Giờ khám trống', href: '/availability' },
   ]
+  if (!role) links.push({ label: 'Tài khoản dùng thử', href: '/demo-accounts' })
   if (role === 'Patient') links.push({ label: 'Lịch hẹn của tôi', href: '/me/appointments' })
   if (role === 'Doctor') links.push({ label: 'Lịch khám được giao', href: '/me/appointments' })
   if (isStaff(role)) links.push({ label: 'Quản lý phòng khám', href: '/admin/appointments' })
